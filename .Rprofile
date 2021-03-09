@@ -1,7 +1,8 @@
 source("renv/activate.R")
 
 #Print project file locations
-cat("Directory: \n", getwd())
-cat("\n\n")
-cat("Library Paths: \n", .libPaths())
-cat("\n\n")
+cat("\n")
+cat("Directory:", getwd(), sep = "\n")
+cat("\n")
+cat("Library Paths:", .libPaths(), sep = "\n")
+cat("\n")

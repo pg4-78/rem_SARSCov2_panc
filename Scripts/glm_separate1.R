@@ -12,13 +12,19 @@ library(edgeR)
 library(MASS)
 
 ################################################################################
+#Extracting values from the regression of each gene takes long
+#Load saved regression results? T: Yes; F: No (re-calculate)
+z_opt_load_00 <- FALSE
+
+
+################################################################################
 #Run the setup script
 source("Scripts/setup1.R")
 
 ################################################################################
 
 #Make factor variables
-batch_FCT <- factor(c(1,1,1,2,2,2))
+batch_FCT <- factor(c(0,0,0,1,1,1))
 
 #...levels: baseline should go first
 treat_FCT <- factor(
@@ -30,7 +36,7 @@ tibble(sample = colnames(df_c), batch_FCT, treat_FCT)
 
 #Make design matrix
 design1 <- model.matrix(~batch_FCT + treat_FCT)
-rownames(design) <- colnames(df_c)
+rownames(design1) <- colnames(df_c)
 design1
 
 ################################################################################
@@ -41,7 +47,8 @@ design1
 
 #glm:poisson and glm.nb require integer outcome values
 
-#Poisson with batch as a covariate - check first 2 genes 
+####################
+#______Poisson with batch as a covariate - check first 2 genes 
 #test1b: also check if offset option can be written 
 #...as part of the formula instead
 
@@ -69,7 +76,9 @@ test2 <- glm(
 test2
 coef(summary(test2))
 
-#Poisson without batch as a covariate - check first 2 genes
+####################
+#______Poisson without batch as a covariate - check first 2 genes
+
 test3 <- glm(
   formula = df_c[1,] ~ treat_FCT,
   family = "poisson",
@@ -86,7 +95,8 @@ test4 <- glm(
 test4
 coef(summary(test4))
 
-#Neg binom with batch as a covariate - check first gene
+####################
+#______Neg binom with batch as a covariate - check first gene
 
 test5 <- glm.nb(
   formula = df_c[1,] ~ batch_FCT + treat_FCT + offset(log(s_a*colSums(df_c)))
@@ -94,7 +104,8 @@ test5 <- glm.nb(
 test5
 coef(summary(test5))
 
-#Neg binom without batch as a covariate - check first gene
+####################
+#______Neg binom without batch as a covariate - check first gene
 
 test6 <- glm.nb(
   formula = df_c[1,] ~ treat_FCT + offset(log(s_a*colSums(df_c)))
@@ -103,15 +114,15 @@ test6
 coef(summary(test6))
 
 ################################################################################
-#Loop through each gene and perform GLMs
-
+#Either loop through each gene and perform GLMs
+#...or just load the saved vectors
 #First make template vectors of zeros 
 #Loop to go through all the rows (genes):
 #...for aic score (lower indicates better fit) and treatment/ batch p-values
 #...extract the values and put them in the vectors
 
-
-#Poisson with batch coefficient
+####################
+#______Poisson with batch coefficient
 aic_po1_v <- rep(0, dim(df_c)[1])
 p_tr_po1_v <- rep(0, dim(df_c)[1]) 
 p_ba_po1_v <- rep(0, dim(df_c)[1])
@@ -130,7 +141,8 @@ for (i in 1:dim(df_c)[1]) {
 rm(z)
 
 
-#Poisson without batch coefficient
+####################
+#______Poisson without batch coefficient
 aic_po2_v <- rep(0, dim(df_c)[1])
 p_tr_po2_v <- rep(0, dim(df_c)[1]) 
 
@@ -147,7 +159,8 @@ for (i in 1:dim(df_c)[1]) {
 rm(z)
 
 
-#Negative binomial with batch coefficient
+####################
+#______Negative binomial with batch coefficient
 aic_nb1_v <- rep(0, dim(df_c)[1])
 p_tr_nb1_v <- rep(0, dim(df_c)[1]) 
 p_ba_nb1_v <- rep(0, dim(df_c)[1])
@@ -164,7 +177,8 @@ for (i in 1:dim(df_c)[1]) {
 rm(z)
   
 
-#Negative binomial without batch coefficient
+####################
+#______Negative binomial without batch coefficient
 aic_nb2_v <- rep(0, dim(df_c)[1])
 p_tr_nb2_v <- rep(0, dim(df_c)[1]) 
 

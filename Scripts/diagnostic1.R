@@ -34,8 +34,8 @@ df_n_trans <- as_tibble(log(df_n+1))
 #Make vectors of the medians then append them to counts 
 #...raw
 med_c <- pmap_dbl(df_c_trans, 
-  function(mock1, mock2, cont1, cont2, treat1, treat2) {
-    median(c(mock1, mock2, cont1, cont2, treat1, treat2), na.rm=TRUE)
+  function(mock0, mock1, cont0, cont1, treat0, treat1) {
+    median(c(mock0, mock1, cont0, cont1, treat0, treat1), na.rm=TRUE)
   }
 )
 
@@ -45,8 +45,8 @@ median(as.numeric(df_c_trans[2,]))
 
 #...normalised
 med_n <- pmap_dbl(df_n_trans, 
-  function(mock1, mock2, cont1, cont2, treat1, treat2) {
-    median(c(mock1, mock2, cont1, cont2, treat1, treat2), na.rm=TRUE)
+  function(mock0, mock1, cont0, cont1, treat0, treat1) {
+    median(c(mock0, mock1, cont0, cont1, treat0, treat1), na.rm=TRUE)
   }
 )
 
@@ -60,22 +60,22 @@ df_n_trans <- df_n_trans %>% add_column("med" = med_n)
 
 df_c_diff <- df_c_trans %>% 
   transmute(
+    mock0 = mock0 - med,
     mock1 = mock1 - med,
-    mock2 = mock2 - med,
+    cont0 = cont0 - med,
     cont1 = cont1 - med,
-    cont2 = cont2 - med,
+    treat0 = treat0 - med,
     treat1 = treat1 - med,
-    treat2 = treat2 - med,
   )
 
 df_n_diff <- df_n_trans %>% 
   transmute(
+    mock0 = mock0 - med,
     mock1 = mock1 - med,
-    mock2 = mock2 - med,
+    cont0 = cont0 - med,
     cont1 = cont1 - med,
-    cont2 = cont2 - med,
+    treat0 = treat0 - med,
     treat1 = treat1 - med,
-    treat2 = treat2 - med,
   )
 
 # function to plot rle (without outliers)
@@ -88,10 +88,10 @@ rle.plot <- function(y, ...) {
 #RLE plot using the previously defined function
 
 #Shuffle columns to show samples from the same batch next to each other
-df_c_diff <- df_c_diff[, c("cont1", "treat1", "mock1", 
-  "cont2", "treat2", "mock2")]
-df_n_diff <- df_n_diff[, c("cont1", "treat1", "mock1", 
-  "cont2", "treat2", "mock2")]
+df_c_diff <- df_c_diff[, c("cont0", "treat0", "mock0", 
+  "cont1", "treat1", "mock1")]
+df_n_diff <- df_n_diff[, c("cont0", "treat0", "mock0", 
+  "cont1", "treat1", "mock1")]
 
 rle.plot(df_c_diff, main = "RLE un-normalised", 
   col = c(rep("turquoise", times = 3), rep("red", times = 3)))

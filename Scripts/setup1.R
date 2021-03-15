@@ -10,8 +10,8 @@ head(raw)
 
 #Treat (SARS-Cov-2 + Remdesivir), Control (SARS-Cov-2), Mock (Uninfected)
 raw <- dplyr::rename(raw, 
-  "treat1" = 7, "cont1" = 8, "mock1" = 9, 
-  "treat2" = 10, "cont2" = 11, "mock2" = 12, 
+  "treat0" = 7, "cont0" = 8, "mock0" = 9, 
+  "treat1" = 10, "cont1" = 11, "mock1" = 12, 
 )
 
 #2 Replicates for each of the 3 conditions
@@ -35,13 +35,14 @@ y_alt <- calcNormFactors(y, method = "none")
 
 #Matrix of raw counts (_c)
 df_c <- y$counts
+row.names(df_c) <- y[["genes"]][["gene_name"]]
 
 #Vector of normalisation factors (accounting for proportion imbalance)
 s_a <- y$samples$norm.factors
 
 #Vector of scaling factors (accounting for library size difference)
-s_b <- colSums(df_c)
-s_b <- s_b / mean(s_b) #not: s_b / mean(df_c)
+og_lib_sz_v <- colSums(df_c)
+s_b <- og_lib_sz_v / mean(og_lib_sz_v) #not: s_b / mean(df_c)
 
 #Product of previous scaling factors for the final scaling factor
 s <- s_a*s_b

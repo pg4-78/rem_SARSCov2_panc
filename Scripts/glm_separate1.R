@@ -7,15 +7,10 @@ cat("\014\n")
 dev.off()
 dev.new()
 
+library(data.table)
 library(tidyverse)
 library(edgeR)
 library(MASS)
-
-################################################################################
-#Extracting values from the regression of each gene takes long
-#Load saved regression results? T: Yes; F: No (re-calculate)
-z_opt_load_00 <- FALSE
-
 
 ################################################################################
 #Run the setup script
@@ -24,175 +19,217 @@ source("Scripts/setup1.R")
 ################################################################################
 
 #Make factor variables
-batch_FCT <- factor(c(0,0,0,1,1,1))
+batch_FCT_ <- factor(c(0,0,0,1,1,1))
 
 #...levels: baseline should go first
-treat_FCT <- factor(
+expos_FCT_ <- factor(
   c("treat","cont","mock","treat","cont","mock"),
   levels = c("cont","treat","mock")
 )
 
-tibble(sample = colnames(df_c), batch_FCT, treat_FCT)
+tibble(sample = colnames(df_c), batch_FCT_, expos_FCT_)
 
-#Make design matrix
-design1 <- model.matrix(~batch_FCT + treat_FCT)
+#Check design matrices
+design1 <- model.matrix(~batch_FCT_ + expos_FCT_)
 rownames(design1) <- colnames(df_c)
 design1
 
+design2 <- model.matrix(~expos_FCT_)
+rownames(design2) <- colnames(df_c)
+design2
+
 ################################################################################
-#Before attempting to loop through every gene, 
-#...try the first two genes
+#For ease of troubleshooting: Before attempting to loop through every gene, 
+#...try one gene
+
+#Choose a gene between 1 and (...18302) (inclusive)
+dim(df_c)[1]
+
+#Error genes: "KLHL17"
+gene_num <- "KLHL17"
 
 #check offset
 
 #glm:poisson and glm.nb require integer outcome values
 
 ####################
-#______Poisson with batch as a covariate - check first 2 genes 
+#______Poisson with batch as a covariate - check gene_num 
 #test1b: also check if offset option can be written 
 #...as part of the formula instead
 
 test1 <- glm(
-  formula = df_c[1,] ~ batch_FCT + treat_FCT,
+  formula = df_c[gene_num,] ~ batch_FCT_ + expos_FCT_,
   family = "poisson",
-  offset = log(s_a*colSums(df_c))
+  offset = log(s*og_lib_sz_v)
 )
 test1
 coef(summary(test1))
 
 test1b <- glm(
-  formula = df_c[1,] ~ batch_FCT + treat_FCT + offset(log(s_a*colSums(df_c))),
+  formula = df_c[gene_num,] ~ batch_FCT_ + expos_FCT_ + offset(log(s*og_lib_sz_v)),
   family = "poisson"
 )
 test1b
 coef(summary(test1b))
 
+####################
+#______Poisson without batch as a covariate - check gene_num 
+#test2b: also check if offset option can be written 
+#...as part of the formula instead
 
 test2 <- glm(
-  formula = df_c[2,] ~ batch_FCT + treat_FCT,
+  formula = df_c[gene_num,] ~ expos_FCT_,
   family = "poisson",
-  offset = log(s_a*colSums(df_c))
+  offset = log(s*og_lib_sz_v)
 )
 test2
 coef(summary(test2))
 
-####################
-#______Poisson without batch as a covariate - check first 2 genes
+test2b <- glm(
+  formula = df_c[gene_num,] ~ expos_FCT_ + offset(log(s*og_lib_sz_v)),
+  family = "poisson"
+)
+test2b
+coef(summary(test2b))
 
-test3 <- glm(
-  formula = df_c[1,] ~ treat_FCT,
-  family = "poisson",
-  offset = log(s_a*colSums(df_c))
+####################
+#______Neg binom with batch as a covariate - check gene_num 
+
+test3 <- tryCatch(
+  glm.nb(formula = df_c[gene_num,] ~ batch_FCT_ + expos_FCT_ + offset(log(s*og_lib_sz_v))), 
+  error = function(e) NULL
 )
 test3
-coef(summary(test3))
+tryCatch(coef(summary(test3)), error = function(e) NA)
+test3_aic <- tryCatch(test3[["aic"]], error = function(e) NA)
+test3_treat <- tryCatch(coef(summary(test3))[["expos_FCT_treat",4]], error = function(e) NA)
+test3_batch <- tryCatch(coef(summary(test3))[["batch_FCT_1",4]], error = function(e) NA)
+test3_aic
+test3_treat
+test3_batch
 
-test4 <- glm(
-  formula = df_c[2,] ~ treat_FCT,
-  family = "poisson",
-  offset = log(s_a*colSums(df_c))
+####################
+#______Neg binom without batch as a covariate - check gene_num 
+
+test4 <- tryCatch(
+  glm.nb(formula = df_c[gene_num,] ~ expos_FCT_ + offset(log(s*og_lib_sz_v))), 
+  error = function(e) NULL
 )
 test4
-coef(summary(test4))
-
-####################
-#______Neg binom with batch as a covariate - check first gene
-
-test5 <- glm.nb(
-  formula = df_c[1,] ~ batch_FCT + treat_FCT + offset(log(s_a*colSums(df_c)))
-)
-test5
-coef(summary(test5))
-
-####################
-#______Neg binom without batch as a covariate - check first gene
-
-test6 <- glm.nb(
-  formula = df_c[1,] ~ treat_FCT + offset(log(s_a*colSums(df_c)))
-)
-test6
-coef(summary(test6))
+tryCatch(coef(summary(test4)), error = function(e) NA)
+test4_aic <- tryCatch(test4[["aic"]], error = function(e) NA)
+test4_treat <- tryCatch(coef(summary(test4))[["expos_FCT_treat",4]], error = function(e) NA)
+test4_aic
+test4_treat
 
 ################################################################################
 #Either loop through each gene and perform GLMs
 #...or just load the saved vectors
-#First make template vectors of zeros 
+#First make template vectors of NAs
 #Loop to go through all the rows (genes):
 #...for aic score (lower indicates better fit) and treatment/ batch p-values
 #...extract the values and put them in the vectors
 
+#Convert to data.table for easier notation
+df_c <- as.data.table(df_c, keep.rownames = TRUE)
+colnames(df_c)[1] <- "gene_name"
+#Count number of zeros in each column
+dim(df_c[treat0 == 0, ]) [1]
+dim(df_c[cont0 == 0, ]) [1]
+dim(df_c[mock0 == 0, ]) [1]
+dim(df_c[treat1 == 0, ]) [1]
+dim(df_c[cont1 == 0, ]) [1]
+dim(df_c[mock1 == 0, ]) [1]
+
+#Possible option: Try all the rows without zeros
+zero_filter <- FALSE
+if (zero_filter == TRUE) {
+  df_c <- df_c[treat0*cont0*mock0*treat1*cont1*mock1!=0,]
+}
+
+#For ease of reference in regressions, get rid of string column
+df_c_nm <- df_c[,"gene_name"]
+df_c <- as.matrix(df_c[,-"gene_name"])
+
 ####################
 #______Poisson with batch coefficient
-aic_po1_v <- rep(0, dim(df_c)[1])
-p_tr_po1_v <- rep(0, dim(df_c)[1]) 
-p_ba_po1_v <- rep(0, dim(df_c)[1])
+aic_po1_v <- as.numeric(rep(NA, dim(df_c)[1]))
+p_tr_po1_v <- as.numeric(rep(NA, dim(df_c)[1]))
+p_ba_po1_v <- as.numeric(rep(NA, dim(df_c)[1]))
 
 for (i in 1:dim(df_c)[1]) {
   z <- glm(
-    formula = df_c[i,] ~ batch_FCT + treat_FCT,
+    formula = df_c[i,] ~ batch_FCT_ + expos_FCT_,
     family = "poisson",
-    offset = log(s_a*colSums(df_c))
+    offset = log(s*og_lib_sz_v)
   )
   
   aic_po1_v[i] <- z[["aic"]]
-  p_tr_po1_v[i] <- coef(summary(z))[[3,4]]
-  p_ba_po1_v[i] <- coef(summary(z))[[2,4]]
+  p_tr_po1_v[i] <- coef(summary(z))[["expos_FCT_treat",4]]
+  p_ba_po1_v[i] <- coef(summary(z))[["batch_FCT_1",4]]
 }
 rm(z)
 
 
 ####################
 #______Poisson without batch coefficient
-aic_po2_v <- rep(0, dim(df_c)[1])
-p_tr_po2_v <- rep(0, dim(df_c)[1]) 
+aic_po2_v <- as.numeric(rep(NA, dim(df_c)[1]))
+p_tr_po2_v <- as.numeric(rep(NA, dim(df_c)[1]))
 
 for (i in 1:dim(df_c)[1]) {
   z <- glm(
-    formula = df_c[i,] ~ treat_FCT,
+    formula = df_c[i,] ~ expos_FCT_,
     family = "poisson",
-    offset = log(s_a*colSums(df_c))
+    offset = log(s*og_lib_sz_v)
   )
   
   aic_po2_v[i] <- z[["aic"]]
-  p_tr_po2_v[i] <- coef(summary(z))[[2,4]]
+  p_tr_po2_v[i] <- coef(summary(z))[["expos_FCT_treat",4]]
 }
 rm(z)
 
 
 ####################
 #______Negative binomial with batch coefficient
-aic_nb1_v <- rep(0, dim(df_c)[1])
-p_tr_nb1_v <- rep(0, dim(df_c)[1]) 
-p_ba_nb1_v <- rep(0, dim(df_c)[1])
+aic_nb1_v <- as.numeric(rep(NA, dim(df_c)[1]))
+p_tr_nb1_v <- as.numeric(rep(NA, dim(df_c)[1]))
+p_ba_nb1_v <- as.numeric(rep(NA, dim(df_c)[1]))
 
 for (i in 1:dim(df_c)[1]) {
-  z <- glm.nb(
-    formula = df_c[i,] ~ batch_FCT + treat_FCT + offset(log(s_a*colSums(df_c)))
-  )
+  z <- tryCatch(
+    glm.nb(formula = df_c[i,] ~ batch_FCT_ + expos_FCT_ + offset(log(s*og_lib_sz_v))), 
+    error = function(e) {NA}
+)
   
-  aic_nb1_v[i] <- z[["aic"]]
-  p_tr_nb1_v[i] <- coef(summary(z))[[3,4]]
-  p_ba_nb1_v[i] <- coef(summary(z))[[2,4]]
+  aic_nb1_v[i] <- tryCatch(z[["aic"]], error = function(e){NA})
+  p_tr_nb1_v[i] <- tryCatch(coef(summary(z))[["expos_FCT_treat",4]], error = function(e){NA})
+  p_ba_nb1_v[i] <- tryCatch(coef(summary(z))[["batch_FCT_1",4]], error = function(e){NA})
 }
 rm(z)
   
 
 ####################
 #______Negative binomial without batch coefficient
-aic_nb2_v <- rep(0, dim(df_c)[1])
-p_tr_nb2_v <- rep(0, dim(df_c)[1]) 
+aic_nb2_v <- as.numeric(rep(NA, dim(df_c)[1]))
+p_tr_nb2_v <- as.numeric(rep(NA, dim(df_c)[1]))
 
 for (i in 1:dim(df_c)[1]) {
-  z <- glm.nb(
-    formula = df_c[i,] ~ treat_FCT + offset(log(s_a*colSums(df_c)))
-  )
+  z <- tryCatch(
+    glm.nb(formula = df_c[i,] ~ expos_FCT_ + offset(log(s*og_lib_sz_v))), 
+    error = function(e){NA}
+)
   
-  aic_nb2_v[i] <- z[["aic"]]
-  p_tr_nb2_v[i] <- coef(summary(z))[[2,4]]
+  aic_nb2_v[i] <- tryCatch(z[["aic"]], error = function(e){NA})
+  p_tr_nb2_v[i] <- tryCatch(coef(summary(z))[["expos_FCT_treat",4]], error = function(e){NA})
 }
 rm(z)
 
+################################################################################
+#The previous calculations can take several minutes
+#The global environment variables are saved
+#Refresh the save?
+if (0) {
+  save.image(file = "./Data/glm_separate1a.RData")
+}
 
-#plot of the both sets of aic densities (pois vs neg-binom)
-
-#plots of p values for batch / treat coefficients (pois vs neg-binom)
+#The graphing steps are in "./Scripts/glm_separate1b"

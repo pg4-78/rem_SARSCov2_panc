@@ -7,7 +7,6 @@ cat("\014\n")
 dev.off()
 dev.new()
 
-library(data.table)
 library(tidyverse)
 library(edgeR)
 library(MASS)
@@ -45,8 +44,8 @@ summary_v <- function(x, v = FALSE, ...) {
   min <- min(x, na.rm = TRUE)
   max <- max(x, na.rm = TRUE)
   left <- quantile(x, probs = c(0,  0.025, 0.25, 0.5, 0.75, 0.975, 1), na.rm = TRUE)
-  present <- sum(is.na(x))
-  missing <- sum(!is.na(x))
+  missing <- sum(is.na(x))
+  present <- sum(!is.na(x))
   
   return(list("mean" = mean,
     "min" = min, "max"  = max, 
@@ -59,7 +58,8 @@ summary_v <- function(x, v = FALSE, ...) {
 summary_v(aic_po1_v)
 summary_v(aic_nb1_v)
 
-#plot of the both sets of aic densities (pois vs neg-binom)
+####################
+#______plot of the both sets of aic densities (pois vs neg-binom)
 ggplot(data = regr_tb_cut) +
   geom_density(aes(x = aic_po1_v), color = "red") + 
   geom_density(aes(x = aic_nb1_v), color = "blue") +
@@ -75,12 +75,99 @@ ggplot(data = regr_tb_cut) +
   xlab("aic") +
   ylab("kernel probability density est.") +
   theme_bw() +
-  ggtitle("AIC") +
+  ggtitle("AIC: zoom in") +
   coord_cartesian(xlim = c(0, 1000))
 
-#plots of p values for treat coefficients 
+#
+ggplot(data = regr_tb_cut) +
+  geom_density(aes(x = aic_po1_v), color = "red") + 
+  xlab("aic") +
+  ylab("kernel probability density est.") +
+  theme_bw() +
+  ggtitle("AIC: poisson only") +
+    coord_cartesian(xlim = c(0, 1000))
+
+#
+ggplot(data = regr_tb_cut) +
+  geom_density(aes(x = aic_nb1_v), color = "blue") + 
+  xlab("aic") +
+  ylab("kernel probability density est.") +
+  theme_bw() +
+  ggtitle("AIC: neg binom only") +
+    coord_cartesian(xlim = c(0, 170))
+
+####################
+#______plots of p values for treat coefficients 
 #...(pois vs neg-binom) 
 #...(batch coef vs none)
 
-#plots of p values for batch coefficients 
+summary_v(p_tr_po1_v)
+summary_v(p_tr_po2_v)
+summary_v(p_tr_nb1_v)
+summary_v(p_tr_nb2_v)
+
+ggplot(data = regr_tb_cut) +
+  geom_density(aes(x = p_tr_po1_v), color = "red") + 
+  geom_density(aes(x = p_tr_nb1_v), color = "blue") +
+  geom_density(aes(x = p_tr_po2_v), color = "red", linetype="dotted") + 
+  geom_density(aes(x = p_tr_nb2_v), color = "blue", linetype="dotted") +
+  xlab("p-value") +
+  ylab("kernel probability density est.") +
+  theme_bw() +
+  ggtitle("Treat coefficient")
+
+#Try again but with a narrower x-range
+ggplot(data = regr_tb_cut) +
+  geom_density(aes(x = p_tr_po1_v), color = "red") + 
+  geom_density(aes(x = p_tr_nb1_v), color = "blue") +
+  geom_density(aes(x = p_tr_po2_v), color = "red", linetype="dotted") + 
+  geom_density(aes(x = p_tr_nb2_v), color = "blue", linetype="dotted") +
+  xlab("p-value") +
+  ylab("kernel probability density est.") +
+  theme_bw() +
+  ggtitle("Treat coefficient: zoom in") +
+  coord_cartesian(xlim = c(0, 0.15))
+
+#Neg binom only
+ggplot(data = regr_tb_cut) +
+  geom_density(aes(x = p_tr_nb1_v), color = "blue") +
+  geom_density(aes(x = p_tr_nb2_v), color = "blue", linetype="dotted") +
+  xlab("p-value") +
+  ylab("kernel probability density est.") +
+  theme_bw() +
+  ggtitle("Treat coefficient: neg binom only") +
+  coord_cartesian(xlim = c(0, 1))
+
+####################
+#______plots of p values for batch coefficients 
 #...(pois vs neg-binom)
+
+summary_v(p_ba_po1_v)
+summary_v(p_ba_nb1_v)
+
+ggplot(data = regr_tb_cut) +
+  geom_density(aes(x = p_ba_po1_v), color = "red") + 
+  geom_density(aes(x = p_ba_nb1_v), color = "blue") +
+  xlab("p-value") +
+  ylab("kernel probability density est.") +
+  theme_bw() +
+  ggtitle("Batch coefficient")
+
+#Try again but with a narrower x-range
+ggplot(data = regr_tb_cut) +
+  geom_density(aes(x = p_ba_po1_v), color = "red") + 
+  geom_density(aes(x = p_ba_nb1_v), color = "blue") +
+  xlab("p-value") +
+  ylab("kernel probability density est.") +
+  theme_bw() +
+  ggtitle("Batch coefficient: zoom in") +
+  coord_cartesian(xlim = c(0, 0.15))
+
+#Neg binom only
+ggplot(data = regr_tb_cut) +
+  geom_density(aes(x = p_ba_nb1_v), color = "blue") +
+  xlab("p-value") +
+  ylab("kernel probability density est.") +
+  theme_bw() +
+  ggtitle("Batch coefficient: neg binom only") +
+  coord_cartesian(xlim = c(0, 1))

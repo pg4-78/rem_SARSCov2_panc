@@ -1,19 +1,11 @@
-#Clear
-#...variables
-rm(list=ls())
-#...console
-cat("\014\n")
-#...graphs
-dev.off()
-dev.new()
+#Run the setup script
+source("Scripts/setup1.R")
+
+################################################################################
 
 library(tidyverse)
 library(edgeR)
 library(EDASeq)
-
-################################################################################
-#Run the setup script
-source("Scripts/setup1.R")
 
 ################################################################################
 #MDS plots

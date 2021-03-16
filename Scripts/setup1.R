@@ -1,3 +1,12 @@
+#Clear
+#...variables
+rm(list=ls())
+#...console
+cat("\014\n")
+#...graphs
+tryCatch(dev.off(), error = function(e) {NULL})
+dev.new()
+
 library(tidyverse)
 library(edgeR)
 
@@ -33,9 +42,10 @@ y_alt <- calcNormFactors(y, method = "none")
 
 ################################################################################
 
-#Matrix of raw counts (_c)
-df_c <- y$counts
-row.names(df_c) <- y[["genes"]][["gene_name"]]
+#Matrix of raw counts
+df_c <- as.matrix(y$counts)
+df_c_nm <- as_tibble(y[["genes"]][["gene_name"]])
+colnames(df_c_nm) <- "gene_name"
 
 #Vector of normalisation factors (accounting for proportion imbalance)
 s_a <- y$samples$norm.factors
@@ -57,6 +67,6 @@ s <- s_a*s_b
 df_n <- df_c
 
 #Divide each column by the respective scaling factor
-for (i in 1:dim(df_n)[2]){
+for (i in 1:dim(df_n)[2]) {
   df_n[,i] <- df_n[,i]/s[i]
 }

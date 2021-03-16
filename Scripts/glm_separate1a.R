@@ -1,12 +1,3 @@
-#Clear
-#...variables
-rm(list=ls())
-#...console
-cat("\014\n")
-#...graphs
-dev.off()
-dev.new()
-
 library(data.table)
 library(tidyverse)
 library(edgeR)
@@ -45,8 +36,12 @@ design2
 #Choose a gene between 1 and (...18302) (inclusive)
 dim(df_c)[1]
 
-#Error genes: "KLHL17"
-gene_num <- "KLHL17"
+df_c_tb <- as_tibble(df_c) %>% 
+  add_column("gene_name" = df_c_nm) %>% 
+  add_column("row_num" = as.numeric(1:dim(df_c)[1]))
+
+#Error genes: 22: "KLHL17"
+gene_num <- 22
 
 #check offset
 
@@ -130,26 +125,21 @@ test4_treat
 #...for aic score (lower indicates better fit) and treatment/ batch p-values
 #...extract the values and put them in the vectors
 
-#Convert to data.table for easier notation
-df_c <- as.data.table(df_c, keep.rownames = TRUE)
-colnames(df_c)[1] <- "gene_name"
 #Count number of zeros in each column
-dim(df_c[treat0 == 0, ]) [1]
-dim(df_c[cont0 == 0, ]) [1]
-dim(df_c[mock0 == 0, ]) [1]
-dim(df_c[treat1 == 0, ]) [1]
-dim(df_c[cont1 == 0, ]) [1]
-dim(df_c[mock1 == 0, ]) [1]
+#Using as.data.table for more convenient notation
+df_c_dt <- as.data.table(df_c)
+dim(df_c_dt[treat0 == 0, ]) [1]
+dim(df_c_dt[cont0 == 0, ]) [1]
+dim(df_c_dt[mock0 == 0, ]) [1]
+dim(df_c_dt[treat1 == 0, ]) [1]
+dim(df_c_dt[cont1 == 0, ]) [1]
+dim(df_c_dt[mock1 == 0, ]) [1]
 
-#Possible option: Try all the rows without zeros
+#Possible option: Only use rows with non-zero values for all 6 counts
 zero_filter <- FALSE
 if (zero_filter == TRUE) {
   df_c <- df_c[treat0*cont0*mock0*treat1*cont1*mock1!=0,]
 }
-
-#For ease of reference in regressions, get rid of string column
-df_c_nm <- df_c[,"gene_name"]
-df_c <- as.matrix(df_c[,-"gene_name"])
 
 ####################
 #______Poisson with batch coefficient

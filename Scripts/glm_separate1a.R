@@ -55,13 +55,13 @@ gene_num <- 22
 test1 <- glm(
   formula = df_c[gene_num,] ~ batch_FCT_ + expos_FCT_,
   family = "poisson",
-  offset = log(s*og_lib_sz_v)
+  offset = log(s_a*og_lib_sz_v)
 )
 test1
 coef(summary(test1))
 
 test1b <- glm(
-  formula = df_c[gene_num,] ~ batch_FCT_ + expos_FCT_ + offset(log(s*og_lib_sz_v)),
+  formula = df_c[gene_num,] ~ batch_FCT_ + expos_FCT_ + offset(log(s_a*og_lib_sz_v)),
   family = "poisson"
 )
 test1b
@@ -75,13 +75,13 @@ coef(summary(test1b))
 test2 <- glm(
   formula = df_c[gene_num,] ~ expos_FCT_,
   family = "poisson",
-  offset = log(s*og_lib_sz_v)
+  offset = log(s_a*og_lib_sz_v)
 )
 test2
 coef(summary(test2))
 
 test2b <- glm(
-  formula = df_c[gene_num,] ~ expos_FCT_ + offset(log(s*og_lib_sz_v)),
+  formula = df_c[gene_num,] ~ expos_FCT_ + offset(log(s_a*og_lib_sz_v)),
   family = "poisson"
 )
 test2b
@@ -91,7 +91,7 @@ coef(summary(test2b))
 #______Neg binom with batch as a covariate - check gene_num 
 
 test3 <- tryCatch(
-  glm.nb(formula = df_c[gene_num,] ~ batch_FCT_ + expos_FCT_ + offset(log(s*og_lib_sz_v))), 
+  glm.nb(formula = df_c[gene_num,] ~ batch_FCT_ + expos_FCT_ + offset(log(s_a*og_lib_sz_v))), 
   error = function(e) NULL
 )
 test3
@@ -107,7 +107,7 @@ test3_batch
 #______Neg binom without batch as a covariate - check gene_num 
 
 test4 <- tryCatch(
-  glm.nb(formula = df_c[gene_num,] ~ expos_FCT_ + offset(log(s*og_lib_sz_v))), 
+  glm.nb(formula = df_c[gene_num,] ~ expos_FCT_ + offset(log(s_a*og_lib_sz_v))), 
   error = function(e) NULL
 )
 test4
@@ -151,7 +151,7 @@ for (i in 1:dim(df_c)[1]) {
   z <- glm(
     formula = df_c[i,] ~ batch_FCT_ + expos_FCT_,
     family = "poisson",
-    offset = log(s*og_lib_sz_v)
+    offset = log(s_a*og_lib_sz_v)
   )
   
   aic_po1_v[i] <- z[["aic"]]
@@ -170,7 +170,7 @@ for (i in 1:dim(df_c)[1]) {
   z <- glm(
     formula = df_c[i,] ~ expos_FCT_,
     family = "poisson",
-    offset = log(s*og_lib_sz_v)
+    offset = log(s_a*og_lib_sz_v)
   )
   
   aic_po2_v[i] <- z[["aic"]]
@@ -187,7 +187,7 @@ p_ba_nb1_v <- as.numeric(rep(NA, dim(df_c)[1]))
 
 for (i in 1:dim(df_c)[1]) {
   z <- tryCatch(
-    glm.nb(formula = df_c[i,] ~ batch_FCT_ + expos_FCT_ + offset(log(s*og_lib_sz_v))), 
+    glm.nb(formula = df_c[i,] ~ batch_FCT_ + expos_FCT_ + offset(log(s_a*og_lib_sz_v))), 
     error = function(e) {NA}
 )
   
@@ -205,7 +205,7 @@ p_tr_nb2_v <- as.numeric(rep(NA, dim(df_c)[1]))
 
 for (i in 1:dim(df_c)[1]) {
   z <- tryCatch(
-    glm.nb(formula = df_c[i,] ~ expos_FCT_ + offset(log(s*og_lib_sz_v))), 
+    glm.nb(formula = df_c[i,] ~ expos_FCT_ + offset(log(s_a*og_lib_sz_v))), 
     error = function(e){NA}
 )
   

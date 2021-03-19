@@ -29,15 +29,15 @@ regr_tb <- regr_tb %>%
   )
 
 #Just keep rows which don't have NA in any of AIC/ p-values
-regr_tb_cut <- regr_tb %>% drop_na()
+regr_tb_keep <- regr_tb %>% drop_na()
 
 #Check how many rows are remaining after the drop
 #Original
 dim(regr_tb)
 #Stays
-dim(regr_tb_cut)
+dim(regr_tb_keep)
 #Leaves
-dim(regr_tb)[1] - dim(regr_tb_cut)[1]
+dim(regr_tb)[1] - dim(regr_tb_keep)[1]
 
 summary_v <- function(x, v = FALSE, ...) {
   mean <- mean(x, na.rm = TRUE)
@@ -60,7 +60,7 @@ summary_v(aic_nb1_v)
 
 ####################
 #______plot of the both sets of aic densities (pois vs neg-binom)
-ggplot(data = regr_tb_cut) +
+ggplot(data = regr_tb_keep) +
   geom_density(aes(x = aic_po1_v), color = "red") + 
   geom_density(aes(x = aic_nb1_v), color = "blue") +
   xlab("aic") +
@@ -69,7 +69,7 @@ ggplot(data = regr_tb_cut) +
   ggtitle("AIC")
 
 #Try again but with a narrower x-range
-ggplot(data = regr_tb_cut) +
+ggplot(data = regr_tb_keep) +
   geom_density(aes(x = aic_po1_v), color = "red") + 
   geom_density(aes(x = aic_nb1_v), color = "blue") +
   xlab("aic") +
@@ -79,7 +79,7 @@ ggplot(data = regr_tb_cut) +
   coord_cartesian(xlim = c(0, 1000))
 
 #
-ggplot(data = regr_tb_cut) +
+ggplot(data = regr_tb_keep) +
   geom_density(aes(x = aic_po1_v), color = "red") + 
   xlab("aic") +
   ylab("kernel probability density est.") +
@@ -88,7 +88,7 @@ ggplot(data = regr_tb_cut) +
     coord_cartesian(xlim = c(0, 1000))
 
 #
-ggplot(data = regr_tb_cut) +
+ggplot(data = regr_tb_keep) +
   geom_density(aes(x = aic_nb1_v), color = "blue") + 
   xlab("aic") +
   ylab("kernel probability density est.") +
@@ -106,7 +106,7 @@ summary_v(p_tr_po2_v)
 summary_v(p_tr_nb1_v)
 summary_v(p_tr_nb2_v)
 
-ggplot(data = regr_tb_cut) +
+ggplot(data = regr_tb_keep) +
   geom_density(aes(x = p_tr_po1_v), color = "red") + 
   geom_density(aes(x = p_tr_nb1_v), color = "blue") +
   geom_density(aes(x = p_tr_po2_v), color = "red", linetype="dotted") + 
@@ -117,7 +117,7 @@ ggplot(data = regr_tb_cut) +
   ggtitle("Treat coefficient")
 
 #Try again but with a narrower x-range
-ggplot(data = regr_tb_cut) +
+ggplot(data = regr_tb_keep) +
   geom_density(aes(x = p_tr_po1_v), color = "red") + 
   geom_density(aes(x = p_tr_nb1_v), color = "blue") +
   geom_density(aes(x = p_tr_po2_v), color = "red", linetype="dotted") + 
@@ -129,7 +129,7 @@ ggplot(data = regr_tb_cut) +
   coord_cartesian(xlim = c(0, 0.15))
 
 #Neg binom only
-ggplot(data = regr_tb_cut) +
+ggplot(data = regr_tb_keep) +
   geom_density(aes(x = p_tr_nb1_v), color = "blue") +
   geom_density(aes(x = p_tr_nb2_v), color = "blue", linetype="dotted") +
   xlab("p-value") +
@@ -145,7 +145,7 @@ ggplot(data = regr_tb_cut) +
 summary_v(p_ba_po1_v)
 summary_v(p_ba_nb1_v)
 
-ggplot(data = regr_tb_cut) +
+ggplot(data = regr_tb_keep) +
   geom_density(aes(x = p_ba_po1_v), color = "red") + 
   geom_density(aes(x = p_ba_nb1_v), color = "blue") +
   xlab("p-value") +
@@ -154,7 +154,7 @@ ggplot(data = regr_tb_cut) +
   ggtitle("Batch coefficient")
 
 #Try again but with a narrower x-range
-ggplot(data = regr_tb_cut) +
+ggplot(data = regr_tb_keep) +
   geom_density(aes(x = p_ba_po1_v), color = "red") + 
   geom_density(aes(x = p_ba_nb1_v), color = "blue") +
   xlab("p-value") +
@@ -164,7 +164,7 @@ ggplot(data = regr_tb_cut) +
   coord_cartesian(xlim = c(0, 0.15))
 
 #Neg binom only
-ggplot(data = regr_tb_cut) +
+ggplot(data = regr_tb_keep) +
   geom_density(aes(x = p_ba_nb1_v), color = "blue") +
   xlab("p-value") +
   ylab("kernel probability density est.") +

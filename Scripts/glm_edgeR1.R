@@ -30,17 +30,11 @@ design2
 ################################################################################
 #Estimate the dispersion, other options are left default for now
 y_spare <- y
-########################################
-#___with batch as a covariate
 
 ####################
 #______Standard glmFit
 
-#The glmFit does not work until dispersions are estimated
-
-#Error in glmFit.DGEList(y, design = design1) : 
-#  No dispersion values found in DGEList object.
-
+#(The glmFit does not work until dispersions are estimated)
 #Dispersion
 y <- estimateDisp(y, design = design1)
 
@@ -52,21 +46,65 @@ design1
 #...genewise dispersion, trended dispersions, common dispersion.
 fit_st <- glmFit(y, design = design1)
 
-#contrast takes priority over coef
-#coef: to test if a coefficient is equal to zero (default last)
-test_lr_i <- glmLRT(fit_st, coef = 3)
-top_lr_i <- topTags(test_lr_i)
-top_lr_i
+#Test INFECT coefficient
+#...contrast takes priority over coef 
+#...contrast = c(0,0,1,0) gives equivalent results
+#...coef: to test if a coefficient is equal to zero (default last)
+gene_test_lr_i <- glmLRT(fit_st, coef = 3)
+#Show top genes for INFECT
+#...default is to display n=10
+gene_top_lr_i <- topTags(gene_test_lr_i) 
 
-#Made sure the alternate way of specifying is equivalent: OK
-if (0) {
-  test_lr_i_alt <- glmLRT(fit_st, contrast = c(0,0,1,0))
-  top_lr_i_alt <- topTags(test_lr_i_alt)
-  top_lr_i_alt
-}
+#over-represented gene GROUPS for INFECT
+kegga_test_lr_i <- kegga(gene_test_lr_i, species="Hs")
+kegga_top_lr_i <- topKEGG(kegga_test_lr_i, sort = "up")
+
+goana_test_lr_i <- goana(gene_test_lr_i, species="Hs")
+goana_top_lr_i <- topGO(goana_test_lr_i, sort = "up") 
+#For reference:
+#...Biological Process (BP)
+#...Cellular Component (CC)
+#...Molecular Function (MF)
+
+cat("INFECT: Top genes\n")
+gene_top_lr_i
+cat("INFECT: Top KEGG pathways\n")
+kegga_top_lr_i
+cat("INFECT: Top GO\n")
+goana_top_lr_i
+
+#####
+
+#Test TREAT coefficient
+#...contrast takes priority over coef 
+#...contrast = c(0,0,1,0) gives equivalent results
+#...coef: to test if a coefficient is equal to zero (default last)
+gene_test_lr_t <- glmLRT(fit_st, coef = 4)
+#Show top genes for TREAT
+#...default is to display n=10
+gene_top_lr_t <- topTags(gene_test_lr_t) 
+
+#over-represented gene GROUPS for TREAT
+kegga_test_lr_t <- kegga(gene_test_lr_t, species="Hs")
+kegga_top_lr_t <- topKEGG(kegga_test_lr_t, sort = "up")
+
+goana_test_lr_t <- goana(gene_test_lr_t, species="Hs")
+goana_top_lr_t <- topGO(goana_test_lr_t, sort = "up") 
+#For reference:
+#...Biological Process (BP)
+#...Cellular Component (CC)
+#...Molecular Function (MF)
+
+cat("TREAT: Top genes\n")
+gene_top_lr_t
+cat("TREAT: Top KEGG pathways\n")
+kegga_top_lr_t
+cat("TREAT: Top GO\n")
+goana_top_lr_t
 
 ####################
 #______Quasi-Likelihood dispersion: 
+# ... ???
 
 fit_ql <- glmQLFit(y, design = design1)
 plotQLDisp(fit_ql)
@@ -74,18 +112,19 @@ plotQLDisp(fit_ql)
 
 test_ql_i <- glmLRT(fit_ql, coef = 3)
 
-####################
-#______Gene Ontology
-ont_kegga_lr_i <- kegga(test_lr_i)
-ont_goana_lr_i <- goana(test_lr_i)
-
-ont_kegga_lr_i
-ont_goana_lr_i
 ########################################
 #___without batch as a covariate y_xb (just in case)]
-if (0) {
-  y_xb <- estimateDisp(y, design = design2)
-  plotBCV(y_xb)
-  
-  #...
-}
+# ... ???
+
+################################################################################
+
+#INFECT: Volcano plots
+#Extract the p-values
+#Transform the p-values
+#Extract the log? fold changes
+#Transform the log? fold changes
+#Figure out how to colour
+as_tibble()
+
+#INFECT: p-value Histograms/ density plots
+#extract p-values

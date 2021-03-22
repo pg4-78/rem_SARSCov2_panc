@@ -3,7 +3,6 @@
 #...also have vectors with genewise regression coefficients
 
 library(data.table)
-library(survey)
 library(tidyverse)
 library(edgeR)
 library(MASS)

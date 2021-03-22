@@ -88,16 +88,16 @@ if (0) {
 
 ################################################################################
 #Convenient summary for vectors
-summary_v <- function(x, v = FALSE, ...) {
+summary_v <- function(x) {
   mean <- mean(x, na.rm = TRUE)
-  min <- min(x, na.rm = TRUE)
-  max <- max(x, na.rm = TRUE)
+  sd <- sd(x, na.rm = TRUE)
+  var <- sd^2
   left <- quantile(x, probs = c(0, 0.001, 0.025, 0.25, 0.5, 0.75, 0.975, 0.999, 1), na.rm = TRUE)
   missing <- sum(is.na(x))
   present <- sum(!is.na(x))
   
   return(list("mean" = mean,
-    "min" = min, "max"  = max, 
+    "sd" = sd, "var"  = var, 
     "left" = left,
     "present" = present, "missing" = missing
     )
@@ -217,6 +217,47 @@ ggplot(data = tb_eo_keep) +
   theme_bw() +
   ggtitle("p-value batch: exclude error regr.") +
   coord_cartesian(ylim = NULL)
+
+####################
+#______plots of treat coefficients 
+
+#...(pois vs neg-binom) 
+map(list(tb_eo_keep$po1_B_t, tb_eo_keep$po2_B_t, tb_eo_keep$nb1_B_t, tb_eo_keep$nb2_B_t), summary_v)
+
+ggplot(data = tb_eo_keep) +
+  geom_point(aes(x = po1_B_t, y = nb1_B_t), alpha = 0.1) +
+  xlab("treat coeff in poisson") +
+  ylab("treat coeff in neg binom") +
+  theme_bw() +
+  ggtitle("coeff treat: exclude error regr.") +
+  coord_cartesian(ylim = NULL)
+
+ggplot(data = tb_eo_keep) +
+  geom_histogram(aes(x = nb1_B_t), binwidth = 2, boundary=0) +
+  xlab("treat coeff in neg binom") +
+  ylab("count") +
+  theme_bw() +
+  ggtitle("coeff treat: exclude error regr.")
+
+####################
+#______plots of infect coefficients 
+
+#...(pois vs neg-binom) 
+
+ggplot(data = tb_eo_keep) +
+  geom_point(aes(x = po1_B_i, y = nb1_B_i), alpha = 0.1) +
+  xlab("infect coeff in poisson") +
+  ylab("infect coeff in neg binom") +
+  theme_bw() +
+  ggtitle("coeff infect: exclude error regr.") +
+  coord_cartesian(ylim = NULL)
+
+ggplot(data = tb_eo_keep) +
+  geom_histogram(aes(x = nb1_B_i), binwidth = 2, boundary=0) +
+  xlab("infect coeff in neg binom") +
+  ylab("count") +
+  theme_bw() +
+  ggtitle("coeff infect: exclude error regr.")
 
 xran <- 0
 yran <- 0

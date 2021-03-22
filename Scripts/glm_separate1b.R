@@ -39,16 +39,16 @@ dim(regr_tb_keep)
 #Leaves
 dim(regr_tb)[1] - dim(regr_tb_keep)[1]
 
-summary_v <- function(x, v = FALSE, ...) {
+summary_v <- function(x) {
   mean <- mean(x, na.rm = TRUE)
-  min <- min(x, na.rm = TRUE)
-  max <- max(x, na.rm = TRUE)
-  left <- quantile(x, probs = c(0,  0.025, 0.25, 0.5, 0.75, 0.975, 1), na.rm = TRUE)
+  sd <- sd(x, na.rm = TRUE)
+  var <- sd^2
+  left <- quantile(x, probs = c(0, 0.001, 0.025, 0.25, 0.5, 0.75, 0.975, 0.999, 1), na.rm = TRUE)
   missing <- sum(is.na(x))
   present <- sum(!is.na(x))
   
   return(list("mean" = mean,
-    "min" = min, "max"  = max, 
+    "sd" = sd, "var"  = var, 
     "left" = left,
     "present" = present, "missing" = missing
     )

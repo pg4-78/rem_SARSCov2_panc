@@ -179,6 +179,12 @@
       "Repository": "CRAN",
       "Hash": "cf29e1b71f8736960e0e851123a83e6f"
     },
+    "RNASeqPower": {
+      "Package": "RNASeqPower",
+      "Version": "1.30.0",
+      "Source": "Bioconductor",
+      "Hash": "5fc67d61e715971426273eb1fdd52ea3"
+    },
     "RSQLite": {
       "Package": "RSQLite",
       "Version": "2.2.3",

@@ -173,6 +173,15 @@ ggplot(data = tb_eo_keep) +
   ggtitle("p-value infect: exclude error regr.") +
   coord_cartesian(ylim = NULL)
 
+xran <- 0.25
+ggplot(data = tb_eo_keep %>% filter(nb1_p_i < xran)) +
+  geom_histogram(aes(x = nb1_p_i), binwidth = 0.01, boundary=0) +
+  xlab("p-value") +
+  ylab("count") +
+  theme_bw() +
+  ggtitle("p-value infect: exclude error regr.") +
+  coord_cartesian(ylim = NULL)
+
 ####################
 #______plots of p values for treat coefficients 
 #...(pois vs neg-binom) 
@@ -197,6 +206,15 @@ ggplot(data = tb_eo_keep) +
   ggtitle("p-value treat: exclude error regr.") +
   coord_cartesian(ylim = NULL)
 
+xran <- 0.25
+ggplot(data = tb_eo_keep %>% filter(nb1_p_t < xran)) +
+  geom_histogram(aes(x = nb1_p_t), binwidth = 0.01, boundary=0) +
+  xlab("p-value") +
+  ylab("count") +
+  theme_bw() +
+  ggtitle("p-value treat: exclude error regr.") +
+  coord_cartesian(ylim = NULL)
+
 ####################
 #______plots of p values for batch coefficients 
 #...(pois vs neg-binom) 
@@ -214,6 +232,15 @@ ggplot(data = tb_eo_keep) +
   geom_density(aes(x = nb1_p_b), color = "blue") +
   xlab("p-value") +
   ylab("kernel probability density est.") +
+  theme_bw() +
+  ggtitle("p-value batch: exclude error regr.") +
+  coord_cartesian(ylim = NULL)
+
+xran <- 0.25
+ggplot(data = tb_eo_keep %>% filter(nb1_p_b < xran)) +
+  geom_histogram(aes(x = nb1_p_b), binwidth = 0.01, boundary=0) +
+  xlab("p-value") +
+  ylab("count") +
   theme_bw() +
   ggtitle("p-value batch: exclude error regr.") +
   coord_cartesian(ylim = NULL)

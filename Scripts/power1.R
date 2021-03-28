@@ -43,11 +43,15 @@ summary_v(as.matrix(count_v))
 #Try a power calculation to check if the study is underpowered
 #2 batches per exposure
 
-depth <- mean(y[["counts"]], na.rm = TRUE)
+depth <- median(y[["counts"]], na.rm = TRUE)
 depth 
 
 rnapower(depth=depth, cv=0.4, effect=1.2, alpha=0.05, power=0.8)
 rnapower(depth=depth, cv=0.4, effect=2, alpha=0.05, power=0.8)
+rnapower(depth=depth, cv=0.4, effect=2.5, alpha=0.05, power=0.8)
+rnapower(depth=depth, cv=0.4, effect=3, alpha=0.05, power=0.8)
+
+
 #depth is average count per gene (per sample?)
 #effect is fold change 
 #cv is usually estimated as 0.4 for humans

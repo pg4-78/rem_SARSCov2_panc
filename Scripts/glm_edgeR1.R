@@ -163,14 +163,16 @@ temp_i <- topTags(gene_test_i, n = n_include)
 volc_i_tb <- tibble("infect_loge_FC" = temp_i[["table"]][["logFC"]]) %>% 
   add_column("infect_p" = temp_i[["table"]][["PValue"]]) %>% 
   mutate("infect_neg_log10_p" = -log10(infect_p)) %>% 
-  add_column("gene_id" = temp_i[["table"]][["gene_name"]]) %>% 
+  add_column("gene_id" = temp_i[["table"]][["gene_id"]]) %>% 
   add_column("gene_name" = temp_i[["table"]][["gene_name"]])
 colnames(volc_i_tb)[1] <- "infect_loge_FC"
 
-ggplot(data = volc_i_tb) +
-  geom_point(aes(x=infect_loge_FC, y=infect_neg_log10_p)) +
+ggplot(data = volc_i_tb, aes(x=infect_loge_FC, y=infect_neg_log10_p)) +
+  geom_point() +
   geom_hline(yintercept = -log10(0.05), color = "red") +
-  ggtitle("volcano infect")
+  ggtitle("volcano infect") +
+  geom_text(data = volc_i_tb %>% filter((infect_p<=0.001) & (abs(infect_loge_FC)>=log(opt_fc_thresh))), 
+    aes(label = gene_name), position=position_jitter(width=0, height=0))
 #Figure out how to colour and label
 
 #volc_i_tb %>% filter(abs(infect_loge_FC)>=log(opt_fc_thresh)
@@ -188,15 +190,17 @@ temp_t <- topTags(gene_test_t, n = n_include)
 volc_t_tb <- tibble("infect_loge_FC" = temp_t[["table"]][["logFC"]]) %>% 
   add_column("treat_p" = temp_t[["table"]][["PValue"]]) %>% 
   mutate("treat_neg_log10_p" = -log10(treat_p)) %>% 
-  add_column("gene_id" = temp_i[["table"]][["gene_name"]]) %>% 
-  add_column("gene_name" = temp_i[["table"]][["gene_name"]])
+  add_column("gene_id" = temp_t[["table"]][["gene_id"]]) %>% 
+  add_column("gene_name" = temp_t[["table"]][["gene_name"]])
 colnames(volc_t_tb)[1] <- "treat_loge_FC"
 
 #Volcano plot treat
-ggplot(data = volc_t_tb) +
-  geom_point(aes(x=treat_loge_FC, y=treat_neg_log10_p)) +
+ggplot(data = volc_t_tb, aes(x=treat_loge_FC, y=treat_neg_log10_p)) +
+  geom_point() +
   geom_hline(yintercept = -log10(0.05), color = "red") +
-  ggtitle("volcano treat")
+  ggtitle("volcano treat") +
+  geom_text(data = volc_t_tb %>% filter((treat_p<=0.001) & (abs(treat_loge_FC)>=log(opt_fc_thresh))), 
+    aes(label = gene_name), position=position_jitter(width=0, height=0))
 #Figure out how to colour and label
 
 ################################################################################

@@ -41,6 +41,9 @@ opt_batch <- TRUE
 #...(TRUE: yes; FALSE: no)
 opt_ql <- FALSE
 
+#Fold change threshold for being in top ranked genes
+opt_fc_thresh <- 3
+
 ################################################################################
 #EdgeR models and gene/kegg/ontology tests
 
@@ -83,14 +86,19 @@ if (opt_ql == TRUE) {gene_test_i <- glmQLFTest(fit, coef = coef_i)} else
 
 #Show top genes for INFECT
 #...default is to display n=10
-gene_top_i <- topTags(gene_test_i)
+gene_top_i <- topTags(gene_test_i, n = n_include)
+
+gene_top_i_tb <- as_tibble(gene_top_i[["table"]]) %>% 
+  dplyr::filter(abs(logFC)>=log(opt_fc_thresh)) %>% 
+  dplyr::arrange(PValue)
+head(gene_top_i_tb, n = 10)
 
 #over-represented gene GROUPS for INFECT
 kegga_test_i <- kegga(gene_test_i, species="Hs")
-kegga_top_i <- topKEGG(kegga_test_i, sort = "up")
+kegga_top_i <- topKEGG(kegga_test_i) #, sort = "up"
 
 goana_test_i <- goana(gene_test_i, species="Hs")
-goana_top_i <- topGO(goana_test_i, sort = "up") 
+goana_top_i <- topGO(goana_test_i) #, sort = "up"
 #For reference:
 #...Biological Process (BP)
 #...Cellular Component (CC)
@@ -98,6 +106,7 @@ goana_top_i <- topGO(goana_test_i, sort = "up")
 
 cat("INFECT: Top genes\n")
 gene_top_i
+gene_top_i_tb
 cat("INFECT: Top KEGG pathways\n")
 kegga_top_i
 cat("INFECT: Top GO\n")
@@ -114,12 +123,17 @@ if (opt_ql == TRUE) {gene_test_t <- glmQLFTest(fit, coef = coef_t)} else
 #...default is to display n=10
 gene_top_t <- topTags(gene_test_t)
 
+gene_top_t_tb <- as_tibble(gene_top_t[["table"]]) %>% 
+  dplyr::filter(abs(logFC)>=log(opt_fc_thresh)) %>% 
+  dplyr::arrange(PValue)
+head(gene_top_t_tb, n = 10)
+
 #over-represented gene GROUPS for TREAT
 kegga_test_t <- kegga(gene_test_t, species="Hs")
-kegga_top_t <- topKEGG(kegga_test_t, sort = "up")
+kegga_top_t <- topKEGG(kegga_test_t) #, sort = "up"
 
 goana_test_t <- goana(gene_test_t, species="Hs")
-goana_top_t <- topGO(goana_test_t, sort = "up") 
+goana_top_t <- topGO(goana_test_t) #, sort = "up"
 #For reference:
 #...Biological Process (BP)
 #...Cellular Component (CC)
@@ -127,6 +141,7 @@ goana_top_t <- topGO(goana_test_t, sort = "up")
 
 cat("TREAT: Top genes\n")
 gene_top_t
+gene_top_t_tb
 cat("TREAT: Top KEGG pathways\n")
 kegga_top_t
 cat("TREAT: Top GO\n")
@@ -145,17 +160,20 @@ temp_i <- topTags(gene_test_i, n = n_include)
 #Transform the log fold changes?
 #Insert the p-values
 #Transform the p-values
-volc_i_tb <- as_tibble(fit[["coefficients"]]) %>% 
-  dplyr::select("infect_FCT_1") %>% 
+volc_i_tb <- tibble("infect_loge_FC" = temp_i[["table"]][["logFC"]]) %>% 
   add_column("infect_p" = temp_i[["table"]][["PValue"]]) %>% 
-  mutate("infect_neg_log10_p" = -log10(infect_p))
+  mutate("infect_neg_log10_p" = -log10(infect_p)) %>% 
+  add_column("gene_id" = temp_i[["table"]][["gene_name"]]) %>% 
+  add_column("gene_name" = temp_i[["table"]][["gene_name"]])
 colnames(volc_i_tb)[1] <- "infect_loge_FC"
 
-#Volcano plot infect
 ggplot(data = volc_i_tb) +
   geom_point(aes(x=infect_loge_FC, y=infect_neg_log10_p)) +
-  geom_hline(yintercept = -log10(0.05), color = "red")
+  geom_hline(yintercept = -log10(0.05), color = "red") +
+  ggtitle("volcano infect")
 #Figure out how to colour and label
+
+#volc_i_tb %>% filter(abs(infect_loge_FC)>=log(opt_fc_thresh)
 
 ####################
 #______TREAT:
@@ -167,16 +185,18 @@ temp_t <- topTags(gene_test_t, n = n_include)
 #Transform the log fold changes?
 #Insert the p-values
 #Transform the p-values
-volc_t_tb <- as_tibble(fit[["coefficients"]]) %>% 
-  dplyr::select("treat_FCT_1") %>% 
+volc_t_tb <- tibble("infect_loge_FC" = temp_t[["table"]][["logFC"]]) %>% 
   add_column("treat_p" = temp_t[["table"]][["PValue"]]) %>% 
-  mutate("treat_neg_log10_p" = -log10(treat_p))
+  mutate("treat_neg_log10_p" = -log10(treat_p)) %>% 
+  add_column("gene_id" = temp_i[["table"]][["gene_name"]]) %>% 
+  add_column("gene_name" = temp_i[["table"]][["gene_name"]])
 colnames(volc_t_tb)[1] <- "treat_loge_FC"
 
 #Volcano plot treat
 ggplot(data = volc_t_tb) +
   geom_point(aes(x=treat_loge_FC, y=treat_neg_log10_p)) +
-  geom_hline(yintercept = -log10(0.05), color = "red")
+  geom_hline(yintercept = -log10(0.05), color = "red") +
+  ggtitle("volcano treat")
 #Figure out how to colour and label
 
 ################################################################################

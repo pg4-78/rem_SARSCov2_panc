@@ -3,11 +3,30 @@ source("Scripts/setup2.R")
 
 #Setup includes filtering and normalisation
 
-#Just keep raw dataset and DGEList object y
-rm(list=setdiff(ls(), c("raw", "y")))
+#Just keep raw dataset, DGEList object y and aveLogCPM threshold
+rm(list=setdiff(ls(), c("raw", "y", "opt_aveCPM_thresh")))
 
 library(tidyverse)
+library(ggrepel)
 library(edgeR)
+library(org.Hs.eg.db)
+
+################################################################################
+#Options
+
+#Use the batch coefficient? 
+#...(TRUE: yes; FALSE: no)
+opt_batch <- TRUE
+
+#Use QL methods?: accounts for uncertainty in dispersion estimation
+#...(TRUE: yes; FALSE: no)
+opt_ql <- FALSE
+
+#Fold change threshold for being in top ranked genes
+opt_fc_thresh <- 3
+
+#Go to setup2 to change the average log CPM threshold
+print(opt_aveCPM_thresh)
 
 ################################################################################
 #Make factor variables
@@ -30,19 +49,6 @@ design2
 
 #Number of included variables
 n_include <- dim(as.matrix(y))[1]
-
-################################################################################
-#______Options
-#Use the batch coefficient? 
-#...(TRUE: yes; FALSE: no)
-opt_batch <- TRUE
-
-#Use QL methods?: accounts for uncertainty in dispersion estimation
-#...(TRUE: yes; FALSE: no)
-opt_ql <- FALSE
-
-#Fold change threshold for being in top ranked genes
-opt_fc_thresh <- 3
 
 ################################################################################
 #EdgeR models and gene/kegg/ontology tests
@@ -74,8 +80,12 @@ plotBCV(y)
 #...genewise dispersion, trended dispersions, common dispersion.
 #QL or standard likelihood ratio option above
 
-if (opt_ql == TRUE) {fit <- glmQLFit(y, design = design_m)} else
-{fit <- glmFit(y, design = design_m)}
+if (opt_ql == TRUE) {
+  fit <- glmQLFit(y, design = design_m)
+  plotQLDisp(fit) 
+} else {
+  fit <- glmFit(y, design = design_m)
+}
 
 ####################
 #______Test INFECT coefficient
@@ -87,9 +97,14 @@ if (opt_ql == TRUE) {gene_test_i <- glmQLFTest(fit, coef = coef_i)} else
 #Show top genes for INFECT
 #...default is to display n=10
 gene_top_i <- topTags(gene_test_i, n = n_include)
+dim(gene_top_i[["table"]])
+
+temp_i <- gene_top_i
+temp_i[["table"]] <- temp_i[["table"]][temp_i[["table"]][["logFC"]]>=log2(opt_fc_thresh),]
+dim(temp_i[["table"]])
 
 gene_top_i_tb <- as_tibble(gene_top_i[["table"]]) %>% 
-  dplyr::filter(abs(logFC)>=log(opt_fc_thresh)) %>% 
+  dplyr::filter(abs(logFC)>=log2(opt_fc_thresh)) %>% 
   dplyr::arrange(PValue)
 head(gene_top_i_tb, n = 10)
 
@@ -121,10 +136,14 @@ if (opt_ql == TRUE) {gene_test_t <- glmQLFTest(fit, coef = coef_t)} else
 
 #Show top genes for TREAT
 #...default is to display n=10
-gene_top_t <- topTags(gene_test_t)
+gene_top_t <- topTags(gene_test_t, n = n_include)
+
+temp_t <- gene_top_t
+temp_t[["table"]] <- temp_t[["table"]][temp_t[["table"]][["logFC"]]>=log2(opt_fc_thresh),]
+dim(temp_t[["table"]])
 
 gene_top_t_tb <- as_tibble(gene_top_t[["table"]]) %>% 
-  dplyr::filter(abs(logFC)>=log(opt_fc_thresh)) %>% 
+  dplyr::filter(abs(logFC)>=log2(opt_fc_thresh)) %>% 
   dplyr::arrange(PValue)
 head(gene_top_t_tb, n = 10)
 
@@ -150,70 +169,87 @@ goana_top_t
 ################################################################################
 #Volcano plots
 
-####################
-#______INFECT:
 #Extract the p-values
-#They are stored in topTags: just increase the gene limit to all
-temp_i <- topTags(gene_test_i, n = n_include)
-
 #Extract the log fold changes
 #Transform the log fold changes?
 #Insert the p-values
 #Transform the p-values
-volc_i_tb <- tibble("infect_loge_FC" = temp_i[["table"]][["logFC"]]) %>% 
-  add_column("infect_p" = temp_i[["table"]][["PValue"]]) %>% 
-  mutate("infect_neg_log10_p" = -log10(infect_p)) %>% 
-  add_column("gene_id" = temp_i[["table"]][["gene_id"]]) %>% 
-  add_column("gene_name" = temp_i[["table"]][["gene_name"]])
-colnames(volc_i_tb)[1] <- "infect_loge_FC"
 
-ggplot(data = volc_i_tb, aes(x=infect_loge_FC, y=infect_neg_log10_p)) +
+####################
+#______INFECT:
+
+volc_i_tb <- as_tibble(gene_top_i[["table"]]) %>% 
+  dplyr::mutate("neg_log10_p" = -log10(PValue))
+
+ggplot(data = volc_i_tb, aes(x=logFC, y=neg_log10_p)) +
   geom_point() +
-  geom_hline(yintercept = -log10(0.05), color = "red") +
+  #geom_hline(yintercept = -log10(0.05), color = "red") +
   ggtitle("volcano infect") +
-  geom_text(data = volc_i_tb %>% filter((infect_p<=0.001) & (abs(infect_loge_FC)>=log(opt_fc_thresh))), 
-    aes(label = gene_name), position=position_jitter(width=0, height=0))
-#Figure out how to colour and label
-
-#volc_i_tb %>% filter(abs(infect_loge_FC)>=log(opt_fc_thresh)
+  geom_label_repel(data = volc_i_tb %>% filter(FDR<0.05 & (abs(logFC)>=log2(opt_fc_thresh))), 
+    aes(label = gene_name), color = "red", alpha = 0.5, nudge_y = 1) +
+  coord_cartesian(xlim = c(-12,12), ylim = c(0,10)) +
+  theme_bw()
 
 ####################
 #______TREAT:
-#Extract the p-values
-#They are stored in topTags: just increase the gene limit to all
-temp_t <- topTags(gene_test_t, n = n_include)
 
-#Extract the log fold changes
-#Transform the log fold changes?
-#Insert the p-values
-#Transform the p-values
-volc_t_tb <- tibble("infect_loge_FC" = temp_t[["table"]][["logFC"]]) %>% 
-  add_column("treat_p" = temp_t[["table"]][["PValue"]]) %>% 
-  mutate("treat_neg_log10_p" = -log10(treat_p)) %>% 
-  add_column("gene_id" = temp_t[["table"]][["gene_id"]]) %>% 
-  add_column("gene_name" = temp_t[["table"]][["gene_name"]])
-colnames(volc_t_tb)[1] <- "treat_loge_FC"
+volc_t_tb <- as_tibble(gene_top_t[["table"]]) %>% 
+  dplyr::mutate("neg_log10_p" = -log10(PValue))
 
-#Volcano plot treat
-ggplot(data = volc_t_tb, aes(x=treat_loge_FC, y=treat_neg_log10_p)) +
+ggplot(data = volc_t_tb, aes(x=logFC, y=neg_log10_p)) +
   geom_point() +
-  geom_hline(yintercept = -log10(0.05), color = "red") +
+  #geom_hline(yintercept = -log10(0.05), color = "red") +
   ggtitle("volcano treat") +
-  geom_text(data = volc_t_tb %>% filter((treat_p<=0.001) & (abs(treat_loge_FC)>=log(opt_fc_thresh))), 
-    aes(label = gene_name), position=position_jitter(width=0, height=0))
-#Figure out how to colour and label
+  geom_label_repel(data = volc_t_tb %>% filter(FDR<0.05 & (abs(logFC)>=log2(opt_fc_thresh))), 
+    aes(label = gene_name), color = "red", alpha = 0.5, nudge_y = 1) +
+  coord_cartesian(xlim = c(-12,12), ylim = c(0,10)) +
+  theme_bw()
 
 ################################################################################
 #P-value histograms
 
 ####################
 #______INFECT:
-ggplot(data = volc_i_tb, aes(x=infect_p)) +
-  geom_histogram(binwidth=0.025, boundary=0) +
-  ggtitle("p-value histogram infect")
+ggplot(data = volc_i_tb, aes(x=PValue)) +
+  geom_histogram(binwidth=0.05, boundary=0) +
+  ggtitle("p-value histogram infect") +
+  theme_bw()
 
 ####################
 #______TREAT:
-ggplot(data = volc_t_tb, aes(x=treat_p)) +
-  geom_histogram(binwidth=0.025, boundary=0) +
-  ggtitle("p-value histogram treat")
+ggplot(data = volc_t_tb, aes(x=PValue)) +
+  geom_histogram(binwidth=0.05, boundary=0) +
+  ggtitle("p-value histogram treat") +
+  theme_bw()
+
+################################################################################
+#Barcode plots
+
+#The x-axis is log-fold change
+#The bars are genes belonging to the gene group
+#The y-axis is enrichment from genes around a certain log-fold change
+
+#Get the genes that belong to a GO group
+#Get the genes that belong to a KEGG pathway
+
+egGO_tb <- org.Hs.egGO
+egGO_list <- as.list(org.Hs.egGO2EG)
+
+egKEGG_tb <- org.Hs.egPATH
+egKEGG_list <- as.list(org.Hs.egPATH2EG)
+
+for (i in 1:length(egKEGG_list)) {
+  names(egKEGG_list)[[i]] <- paste0("path:hsa", names(egKEGG_list)[[i]])
+}
+
+#Vector of genes in the group (T/F)
+
+group <- "path:hsa03020"
+include_ls <- egKEGG_list[[group]]
+includea_lgl <- y[["genes"]][["EntrezGene"]] %in% include_ls
+includeb_lgl <- gene_test_i[["genes"]][["EntrezGene"]] %in% include_ls
+
+fry(y, index=includea_lgl , design=design_m)
+
+barcodeplot(gene_test_i[["table"]][["logFC"]], index = includeb_lgl)
+

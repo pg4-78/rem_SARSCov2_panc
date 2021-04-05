@@ -9,6 +9,7 @@ dev.new()
 
 library(tidyverse)
 library(edgeR)
+library(org.Hs.eg.db)
 
 ################################################################################
 
@@ -18,7 +19,7 @@ raw <- readr::read_tsv("./Data/rnaseq_deseq_5dpi_counts_raw.tsv")
 head(raw)
 
 #Treat (SARS-Cov-2 + Remdesivir), Control (SARS-Cov-2), Mock (Uninfected)
-raw <- dplyr::rename(raw, 
+raw <- dplyr::rename(raw, "ensembl_gene_id" = gene_id,
   "treat0" = 7, "cont0" = 8, "mock0" = 9, 
   "treat1" = 10, "cont1" = 11, "mock1" = 12, 
 )
@@ -34,9 +35,10 @@ y <- y[keep, , keep.lib.sizes=FALSE]
 
 #Extra filter on top of default
 #Average Log(base2) CPM 
-#Subset: require cpm >= 10
+#Subset: require cpm >= opt_aveCPM_thresh (try 10)
+opt_aveCPM_thresh <- 2^2
 log2_cpm_pre_v <- aveLogCPM(y)
-keep_cpm <- log2_cpm_pre_v>=log2(10)
+keep_cpm <- log2_cpm_pre_v>=log2(opt_aveCPM_thresh)
 y <- y[keep_cpm, , keep.lib.sizes=FALSE]
 #...check result
 log2_cpm_post_v <- aveLogCPM(y)
@@ -47,6 +49,11 @@ log2_cpm_post_v <- aveLogCPM(y)
 #Normalisation factors
 y <- calcNormFactors(y)
 y_alt <- calcNormFactors(y, method = "none")
+
+egENSEMBL_tb <- toTable(org.Hs.egENSEMBL)
+#Gene id numbers added to the edgeR DGEList object
+m <- match(y[["genes"]][["ensembl_gene_id"]], egENSEMBL_tb$ensembl_id)
+y$genes$EntrezGene <- egENSEMBL_tb$gene_id[m]
 
 ################################################################################
 

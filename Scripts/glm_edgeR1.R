@@ -1,5 +1,28 @@
-#Run the setup script
-source("Scripts/setup2.R")
+#Re-run the setup script (TRUE)
+#...alternatively, load a save(FALSE)
+if (FALSE) {
+  source("Scripts/setup2.R")
+  #or setup1 for no average log CPM filter
+} else {
+  
+  #Clear
+  #...variables
+  rm(list=ls())
+  #...console
+  cat("\014\n")
+  #...graphs
+  tryCatch(dev.off(), error = function(e) {NULL})
+  dev.new()
+  
+  load(file = "./Data/setup2_cut_2p01.RData")
+  #file = "./Data/setup2_cut_2pn3.RData"
+  #file = "./Data/setup2_cut_2p01.RData"
+  #file = "./Data/setup2_cut_2p03.RData"
+  #file = "./Data/setup2_cut_2p05.RData"
+  #prtn
+  #average CPM cutoff at 2 to the power of (...)
+  #-3 (below the lowest, no filter), 1, 3, 5
+}
 
 #Setup includes filtering and normalisation
 
@@ -55,7 +78,7 @@ n_include <- dim(as.matrix(y))[1]
 
 ####################
 #______Design matrix 
-#...(number coefficients depending on batch coef absent/present)
+#...(number coefficients depending on batch coef absent(FALSE)/ present(TRUE)
 if (opt_batch==TRUE) {
   design_m <- design1
   coef_b <- 2
@@ -72,7 +95,9 @@ if (opt_batch==TRUE) {
 #______Dispersion
 #(edgeR GLM does not work until dispersions are estimated)
 y <- estimateDisp(y, design = design_m)
-plotBCV(y)
+plotBCV(y, xlim = c(-2, 16))
+axis(1, at = seq(-2, 16, by = 1), labels = NA)
+axis(1, at = seq(0, 15, by = 5))
 
 ####################
 #______Fit negative binomial glm
@@ -110,22 +135,28 @@ head(gene_top_i_tb, n = 10)
 
 #over-represented gene GROUPS for INFECT
 kegga_test_i <- kegga(gene_test_i, species="Hs")
-kegga_top_i <- topKEGG(kegga_test_i) #, sort = "up"
+kegga_top_iu <- topKEGG(kegga_test_i, sort = "up")
+kegga_top_id <- topKEGG(kegga_test_i, sort = "down")
 
 goana_test_i <- goana(gene_test_i, species="Hs")
-goana_top_i <- topGO(goana_test_i) #, sort = "up"
+goana_top_iu <- topGO(goana_test_i, sort = "up") 
+goana_top_id <- topGO(goana_test_i, sort = "down")
 #For reference:
 #...Biological Process (BP)
 #...Cellular Component (CC)
 #...Molecular Function (MF)
 
+goana_top_iu <- goana_top_iu %>% mutate(P.Up = round(P.Up,3))##
+
 cat("INFECT: Top genes\n")
 gene_top_i
 gene_top_i_tb
 cat("INFECT: Top KEGG pathways\n")
-kegga_top_i
+kegga_top_iu
+kegga_top_id
 cat("INFECT: Top GO\n")
-goana_top_i
+goana_top_iu
+goana_top_id
 
 ####################
 #______Test TREAT coefficient
@@ -144,15 +175,17 @@ dim(temp_t[["table"]])
 
 gene_top_t_tb <- as_tibble(gene_top_t[["table"]]) %>% 
   dplyr::filter(abs(logFC)>=log2(opt_fc_thresh)) %>% 
-  dplyr::arrange(PValue)
+  dplyr::arrange(PValue) %>% 
 head(gene_top_t_tb, n = 10)
 
 #over-represented gene GROUPS for TREAT
 kegga_test_t <- kegga(gene_test_t, species="Hs")
-kegga_top_t <- topKEGG(kegga_test_t) #, sort = "up"
+kegga_top_tu <- topKEGG(kegga_test_t, sort = "up")
+kegga_top_td <- topKEGG(kegga_test_t, sort = "down")
 
 goana_test_t <- goana(gene_test_t, species="Hs")
-goana_top_t <- topGO(goana_test_t) #, sort = "up"
+goana_top_tu <- topGO(goana_test_t, sort = "up")
+goana_top_td <- topGO(goana_test_t, sort = "down")
 #For reference:
 #...Biological Process (BP)
 #...Cellular Component (CC)
@@ -162,9 +195,11 @@ cat("TREAT: Top genes\n")
 gene_top_t
 gene_top_t_tb
 cat("TREAT: Top KEGG pathways\n")
-kegga_top_t
+kegga_top_tu
+kegga_top_td
 cat("TREAT: Top GO\n")
-goana_top_t
+goana_top_tu
+goana_top_td
 
 ################################################################################
 #Volcano plots
@@ -182,13 +217,16 @@ volc_i_tb <- as_tibble(gene_top_i[["table"]]) %>%
   dplyr::mutate("neg_log10_p" = -log10(PValue))
 
 ggplot(data = volc_i_tb, aes(x=logFC, y=neg_log10_p)) +
-  geom_point() +
-  #geom_hline(yintercept = -log10(0.05), color = "red") +
-  ggtitle("volcano infect") +
-  geom_label_repel(data = volc_i_tb %>% filter(FDR<0.05 & (abs(logFC)>=log2(opt_fc_thresh))), 
-    aes(label = gene_name), color = "red", alpha = 0.5, nudge_y = 1) +
+  geom_point(size = 1.5, alpha = 0.6, shape = 16) +
+  geom_label_repel(data = volc_i_tb %>% filter(FDR<0.05 & (abs(logFC)>=log2(opt_fc_thresh))), #
+    aes(label = gene_name), color = "red", alpha = 0.8, nudge_y = 1) +
+  scale_x_continuous(breaks = seq(-10, 10, by = 5), minor_breaks = seq(-12, 12, by = 1)) +
+  scale_y_continuous(breaks = seq(0, 10, by = 1), minor_breaks = NULL) +
   coord_cartesian(xlim = c(-12,12), ylim = c(0,10)) +
-  theme_bw()
+  theme_bw() +
+  xlab("log2(fold change) infection") +
+  ylab("-log10(p-value)") #+
+  #ggtitle("volcano infect")
 
 ####################
 #______TREAT:
@@ -197,13 +235,16 @@ volc_t_tb <- as_tibble(gene_top_t[["table"]]) %>%
   dplyr::mutate("neg_log10_p" = -log10(PValue))
 
 ggplot(data = volc_t_tb, aes(x=logFC, y=neg_log10_p)) +
-  geom_point() +
-  #geom_hline(yintercept = -log10(0.05), color = "red") +
-  ggtitle("volcano treat") +
-  geom_label_repel(data = volc_t_tb %>% filter(FDR<0.05 & (abs(logFC)>=log2(opt_fc_thresh))), 
-    aes(label = gene_name), color = "red", alpha = 0.5, nudge_y = 1) +
+  geom_point(size = 1.5, alpha = 0.6, shape = 16) +
+  geom_label_repel(data = volc_t_tb %>% filter(FDR<0.06& (abs(logFC)>=log2(opt_fc_thresh))), # 
+    aes(label = gene_name), color = "black", alpha = 0.8, nudge_y = 1) +
+  scale_x_continuous(breaks = seq(-10, 10, by = 5), minor_breaks = seq(-12, 12, by = 1)) +
+  scale_y_continuous(breaks = seq(0, 10, by = 1), minor_breaks = NULL) +
   coord_cartesian(xlim = c(-12,12), ylim = c(0,10)) +
-  theme_bw()
+  theme_bw() + 
+  xlab("log2(fold change) treatment") +
+  ylab("-log10(p-value)") #+
+  #ggtitle("volcano treat") 
 
 ################################################################################
 #P-value histograms
@@ -211,16 +252,25 @@ ggplot(data = volc_t_tb, aes(x=logFC, y=neg_log10_p)) +
 ####################
 #______INFECT:
 ggplot(data = volc_i_tb, aes(x=PValue)) +
-  geom_histogram(binwidth=0.05, boundary=0) +
-  ggtitle("p-value histogram infect") +
-  theme_bw()
+  geom_histogram(binwidth=0.025, boundary=0, fill="black", colour="white", size=0.2) +
+  geom_density() +
+  xlab("p-values of infect regression coefficients") +
+  ylab("frequency") +
+  coord_cartesian(x=c(0,1), y=c(0,500)) +
+  scale_x_continuous(breaks = seq(0,1,0.2), minor_breaks = seq(0,1,0.025)) +
+  theme_bw() #+ 
+  #ggtitle("p-value histogram infect")
 
 ####################
 #______TREAT:
 ggplot(data = volc_t_tb, aes(x=PValue)) +
-  geom_histogram(binwidth=0.05, boundary=0) +
-  ggtitle("p-value histogram treat") +
-  theme_bw()
+  geom_histogram(binwidth=0.025, boundary=0, fill="black", colour="white", size=0.2) +
+  xlab("p-values of treat regression coefficients") +
+  ylab("frequency") +
+  coord_cartesian(x=c(0,1), y=c(0,500)) +
+  scale_x_continuous(breaks = seq(0,1,0.2), minor_breaks = seq(0,1,0.025)) +
+  theme_bw() #+
+  #ggtitle("p-value histogram treat")
 
 ################################################################################
 #Barcode plots
@@ -252,4 +302,3 @@ includeb_lgl <- gene_test_i[["genes"]][["EntrezGene"]] %in% include_ls
 fry(y, index=includea_lgl , design=design_m)
 
 barcodeplot(gene_test_i[["table"]][["logFC"]], index = includeb_lgl)
-

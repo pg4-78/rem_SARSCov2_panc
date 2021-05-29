@@ -28,20 +28,29 @@ raw <- dplyr::rename(raw, "ensembl_gene_id" = gene_id,
 group <- c(1:3,1:3)
 #edgeR Bioconductor compatible object
 y <- DGEList(counts=raw[,7:12], group=group, genes=raw[,c(1,3)])
+print(dim(y))
 
 #Filter if expression is too low
 keep <- filterByExpr(y)
 y <- y[keep, , keep.lib.sizes=FALSE]
+print(dim(y))
 
 #Extra filter on top of default
 #Average Log(base2) CPM 
-#Subset: require cpm >= opt_aveCPM_thresh (try 10)
-opt_aveCPM_thresh <- 2^2
+#Subset: require cpm >= opt_aveCPM_thresh
+opt_aveCPM_thresh <- 2^1
 log2_cpm_pre_v <- aveLogCPM(y)
-keep_cpm <- log2_cpm_pre_v>=log2(opt_aveCPM_thresh)
+keep_cpm <- log2_cpm_pre_v >= log2(opt_aveCPM_thresh)
 y <- y[keep_cpm, , keep.lib.sizes=FALSE]
-#...check result
+print(dim(y))
 log2_cpm_post_v <- aveLogCPM(y)
+
+#...check result
+cat(c("average log2 CPM before filter:", round(mean(log2_cpm_pre_v), 3), "\n"))
+cat(c("average log2 CPM after filter:", round(mean(log2_cpm_post_v), 3), "\n"))
+
+cat(c("min log2 CPM before filter:", round(min(log2_cpm_pre_v), 3), "\n"))
+cat(c("min log2 CPM after filter:", round(min(log2_cpm_post_v), 3), "\n"))
 
 #Filter out alternative splice forms (keep only predominant form)
 #...Not yet
@@ -84,4 +93,16 @@ df_n <- df_c
 #Divide each column by the respective scaling factor
 for (i in 1:dim(df_n)[2]) {
   df_n[,i] <- df_n[,i]/s[i]
+}
+
+################################################################################
+#Save?
+if (FALSE) {
+  save.image(file = "./Data/setup2_cut_2pn3.RData")
+  #file = "./Data/setup2_cut_2pn3.RData"
+  #file = "./Data/setup2_cut_2p01.RData"
+  #file = "./Data/setup2_cut_2p03.RData"
+  #file = "./Data/setup2_cut_2p05.RData"
+  #average CPM cutoff at 2 to the power of (...)
+  #-3 (below the lowest, no filter), 1, 3, 5
 }

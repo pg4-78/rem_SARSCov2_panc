@@ -1,8 +1,9 @@
 #Run the setup script
-source("Scripts/setup1.R")
+source("Scripts/setup2.R")
 
 ################################################################################
 
+library(ggrepel)
 library(tidyverse)
 library(edgeR)
 library(EDASeq)
@@ -96,5 +97,55 @@ rle.plot(df_n_diff, main = "RLE normalised",
 pca_mtrx_c <- as.matrix(df_c_trans %>% dplyr::select(!med))
 pca_mtrx_n <- as.matrix(df_n_trans %>% dplyr::select(!med))
 
-plotPCA(pca_mtrx_c, main = "PCA, un-normalised, log(count+1)")
-plotPCA(pca_mtrx_n, main = "PCA, normalised, log(count+1)")
+plotPCA(pca_mtrx_c, main = "PCA, un-normalised, log(count+1)", isLog= TRUE)
+plotPCA(pca_mtrx_n, main = "PCA, normalised, log(count+1)", isLog= TRUE)
+
+#####
+
+#Getting the calculation step from findMethods(plotPCA) : matrix
+#Pass the coordinates to ggplot instead default plot for easier formatting
+coord_PCA_fn <- function (object, k = 2, labels = TRUE, isLog = TRUE, ...) {
+  if (!isLog) {
+      Y <- apply(log(object + 1), 1, function(y) scale(y, 
+          center = TRUE, scale = FALSE))
+  }
+  else {
+      Y <- apply(object, 1, function(y) scale(y, center = TRUE, scale = FALSE))
+  }
+  s <- svd(Y)
+  percent <- s$d^2/sum(s$d^2) * 100
+  labs <- sapply(
+    seq_along(percent), 
+    function(i) {
+      paste("PC ", i, " (", round(percent[i], 2), "%)", sep = "")
+    }
+  )
+  return(c("s" = s, "labs" = labs, "x" = s$u[, 1], "y" = s$u[, 2]))
+}
+
+#####
+#PCA using ggplot raw count
+pca_c <- coord_PCA_fn(pca_mtrx_c)
+
+coord_PCA_c_tb <- tibble(
+  samplea = colnames(pca_mtrx_c),
+  sampleb = c("infect&treat", "treat only", "none", "infect&treat", "treat only", "none"),
+  x = c(pca_c$x1, pca_c$x2, pca_c$x3, pca_c$x4, pca_c$x5, pca_c$x6),
+  y = c(pca_c$y1, pca_c$y2, pca_c$y3, pca_c$y4, pca_c$y5, pca_c$y6)
+)
+
+ggplot(data = coord_PCA_c_tb, aes(x=x, y=y)) +
+  geom_point(
+    fill = c("red", "red", "red", "blue", "blue", "blue"),
+    shape = c(22,21,24,22,21,24),
+    alpha = 0.5,
+    size = 3
+  ) +
+  xlab(pca_c[["labs1"]]) + ylab(pca_c[["labs2"]]) +
+  theme_bw() +
+  geom_label_repel(aes(label = sampleb), color = "black", nudge_x = 0.1, nudge_y = 0.3) +
+  ggtitle("PCA, un-normalised, log(count+1)") +
+  coord_cartesian(xlim = c(-1,1), ylim = c(-1,1))
+
+#####
+#PCA using ggplot normalised count

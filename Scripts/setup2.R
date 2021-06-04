@@ -30,34 +30,63 @@ group <- c(1:3,1:3)
 y <- DGEList(counts=raw[,7:12], group=group, genes=raw[,c(1,3)])
 print(dim(y))
 
-#Filter if expression is too low
-keep <- filterByExpr(y)
-y <- y[keep, , keep.lib.sizes=FALSE]
-print(dim(y))
 
-#Extra filter on top of default
+log2_cpm_pre_tb <- tibble("x" = log2_cpm_pre_v, "gene_biotype" = raw$gene_biotype)
+
+#all genes
+ggplot(data = log2_cpm_pre_tb, aes(x=x)) +
+  geom_histogram(boundary = 0, binwidth = 0.5, fill="black", colour="white", size=0.2) +
+  scale_x_continuous(breaks = seq(-6,16,2), minor_breaks = seq(-6,16,0.5)) +
+  xlab("log2(Average CPM)") +
+  ylab("frequency") +
+  theme_bw() +
+  geom_hline(yintercept=0, colour="black")
+
+#only protein coding genes
+ggplot(data = log2_cpm_pre_tb %>% filter(gene_biotype=="protein_coding"), aes(x=x)) +
+  geom_histogram(boundary = 0, binwidth = 0.5, fill="black", colour="white", size=0.2) +
+  scale_x_continuous(breaks = seq(-6,16,2), minor_breaks = seq(-6,16,0.5)) +
+  xlab("log2(Average CPM)") +
+  ylab("frequency") +
+  theme_bw() +
+  geom_hline(yintercept=0, colour="black")
+
+#Filter if expression is too low
+if (FALSE) {
+  keep <- filterByExpr(y)
+  y <- y[keep, , keep.lib.sizes=FALSE]
+  print(dim(y))
+}
+
+
+#Extra filter on top of default (?)
 #Average Log(base2) CPM 
 #Subset: require cpm >= opt_aveCPM_thresh
-opt_aveCPM_thresh <- 2^1
-log2_cpm_pre_v <- aveLogCPM(y)
-keep_cpm <- log2_cpm_pre_v >= log2(opt_aveCPM_thresh)
-y <- y[keep_cpm, , keep.lib.sizes=FALSE]
-print(dim(y))
-log2_cpm_post_v <- aveLogCPM(y)
+if (TRUE) {
+  log2_cpm_pre_v <- aveLogCPM(y)
+  opt_aveCPM_thresh <- 2^1
 
-#...check result
-cat(c("average log2 CPM before filter:", round(mean(log2_cpm_pre_v), 3), "\n"))
-cat(c("average log2 CPM after filter:", round(mean(log2_cpm_post_v), 3), "\n"))
-
-cat(c("min log2 CPM before filter:", round(min(log2_cpm_pre_v), 3), "\n"))
-cat(c("min log2 CPM after filter:", round(min(log2_cpm_post_v), 3), "\n"))
+  keep_cpm <- log2_cpm_pre_v >= log2(opt_aveCPM_thresh)
+  y <- y[keep_cpm, , keep.lib.sizes=FALSE]
+  print(dim(y))
+  log2_cpm_post_v <- aveLogCPM(y)
+  
+  #...check result
+  cat(c("average log2 CPM before filter:", round(mean(log2_cpm_pre_v), 3), "\n"))
+  cat(c("average log2 CPM after filter:", round(mean(log2_cpm_post_v), 3), "\n"))
+  
+  cat(c("min log2 CPM before filter:", round(min(log2_cpm_pre_v), 3), "\n"))
+  cat(c("min log2 CPM after filter:", round(min(log2_cpm_post_v), 3), "\n"))
+}
 
 #Filter out alternative splice forms (keep only predominant form)
 #...Not yet
 
 #Normalisation factors
 y <- calcNormFactors(y)
+y$samples
 y_alt <- calcNormFactors(y, method = "none")
+y_alt$samples
 
 egENSEMBL_tb <- toTable(org.Hs.egENSEMBL)
 #Gene id numbers added to the edgeR DGEList object
@@ -98,7 +127,12 @@ for (i in 1:dim(df_n)[2]) {
 ################################################################################
 #Save?
 if (FALSE) {
-  save.image(file = "./Data/setup2_cut_2pn3.RData")
+  save.image(file = "./Data/setup2_stock.RData")
+  
+  #No extra filter
+  #file = "./Data/setup2_stock.RData"
+  
+  #Extra filter using opt_aveCPM_thresh
   #file = "./Data/setup2_cut_2pn3.RData"
   #file = "./Data/setup2_cut_2p01.RData"
   #file = "./Data/setup2_cut_2p03.RData"

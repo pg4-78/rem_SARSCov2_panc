@@ -15,11 +15,15 @@ if (FALSE) {
   dev.new()
   
   load(file = "./Data/setup2_cut_2p01.RData")
+  
+  #No extra filter
+  #file = "./Data/setup2_stock.RData"
+  
+  #Extra filter using opt_aveCPM_thresh
   #file = "./Data/setup2_cut_2pn3.RData"
   #file = "./Data/setup2_cut_2p01.RData"
   #file = "./Data/setup2_cut_2p03.RData"
   #file = "./Data/setup2_cut_2p05.RData"
-  #prtn
   #average CPM cutoff at 2 to the power of (...)
   #-3 (below the lowest, no filter), 1, 3, 5
 }
@@ -262,7 +266,7 @@ ggplot(data = volc_i_tb, aes(x=PValue)) +
   #ggtitle("p-value histogram infect")
 
 ####################
-#______TREAT:
+#______TREAT: 
 ggplot(data = volc_t_tb, aes(x=PValue)) +
   geom_histogram(binwidth=0.025, boundary=0, fill="black", colour="white", size=0.2) +
   xlab("p-values of treat regression coefficients") +
@@ -271,34 +275,3 @@ ggplot(data = volc_t_tb, aes(x=PValue)) +
   scale_x_continuous(breaks = seq(0,1,0.2), minor_breaks = seq(0,1,0.025)) +
   theme_bw() #+
   #ggtitle("p-value histogram treat")
-
-################################################################################
-#Barcode plots
-
-#The x-axis is log-fold change
-#The bars are genes belonging to the gene group
-#The y-axis is enrichment from genes around a certain log-fold change
-
-#Get the genes that belong to a GO group
-#Get the genes that belong to a KEGG pathway
-
-egGO_tb <- org.Hs.egGO
-egGO_list <- as.list(org.Hs.egGO2EG)
-
-egKEGG_tb <- org.Hs.egPATH
-egKEGG_list <- as.list(org.Hs.egPATH2EG)
-
-for (i in 1:length(egKEGG_list)) {
-  names(egKEGG_list)[[i]] <- paste0("path:hsa", names(egKEGG_list)[[i]])
-}
-
-#Vector of genes in the group (T/F)
-
-group <- "path:hsa03020"
-include_ls <- egKEGG_list[[group]]
-includea_lgl <- y[["genes"]][["EntrezGene"]] %in% include_ls
-includeb_lgl <- gene_test_i[["genes"]][["EntrezGene"]] %in% include_ls
-
-fry(y, index=includea_lgl , design=design_m)
-
-barcodeplot(gene_test_i[["table"]][["logFC"]], index = includeb_lgl)

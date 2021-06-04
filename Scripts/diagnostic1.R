@@ -74,11 +74,22 @@ df_n_diff <- df_n_trans %>%
 # function to plot rle (without outliers)
 # y = rle matrix
 rle.plot <- function(y, ...) {
-  boxplot(y, outline=FALSE, ...)
-  abline(h=0)
+  temp <- stack(as.data.frame(y))
+  ggplot(temp) + 
+  geom_boxplot(aes(x = ind, y = values), outlier.shape = NA, 
+    fill = c(rep("#91bfdb", times = 3), rep("#fc8d59", times = 3))
+  ) +
+  theme_bw() +
+  xlab("sample") +
+  ylab("relative log expression") +
+  geom_hline(yintercept=0, colour = "black", size = 0.5, linetype = "solid") +
+  scale_y_continuous(breaks = seq(-2, 2, by = 0.5), minor_breaks = NULL) +
+  scale_x_discrete(labels = c("infect&treat 1", "treat only 1", "none 1", "infect&treat 2", "treat only 2", "none 2")) +
+  coord_cartesian(ylim = c(-2, 2))
 }
 
-#RLE plot using the previously defined function
+#https://ggplot2.tidyverse.org/reference/geom_boxplot.html
+#coef	Length of the whiskers as multiple of IQR. Defaults to 1.5.
 
 #Shuffle columns to show samples from the same batch next to each other
 df_c_diff <- df_c_diff[, c("cont0", "treat0", "mock0", 
@@ -86,10 +97,9 @@ df_c_diff <- df_c_diff[, c("cont0", "treat0", "mock0",
 df_n_diff <- df_n_diff[, c("cont0", "treat0", "mock0", 
   "cont1", "treat1", "mock1")]
 
-rle.plot(df_c_diff, main = "RLE un-normalised", 
-  col = c(rep("turquoise", times = 3), rep("red", times = 3)))
-rle.plot(df_n_diff, main = "RLE normalised", 
-  col = c(rep("turquoise", times = 3), rep("red", times = 3)))
+#RLE plot using the previously defined function
+rle.plot(df_c_diff) #un-normalised
+rle.plot(df_n_diff) #normalised
 
 ################################################################################
 
@@ -129,16 +139,16 @@ pca_c <- coord_PCA_fn(pca_mtrx_c)
 
 coord_PCA_c_tb <- tibble(
   samplea = colnames(pca_mtrx_c),
-  sampleb = c("infect&treat", "treat only", "none", "infect&treat", "treat only", "none"),
+  sampleb = c("infect&treat 1", "treat only 1", "none 1", "infect&treat 2", "treat only 2", "none 2"),
   x = c(pca_c$x1, pca_c$x2, pca_c$x3, pca_c$x4, pca_c$x5, pca_c$x6),
   y = c(pca_c$y1, pca_c$y2, pca_c$y3, pca_c$y4, pca_c$y5, pca_c$y6)
 )
 
 ggplot(data = coord_PCA_c_tb, aes(x=x, y=y)) +
   geom_point(
-    fill = c("red", "red", "red", "blue", "blue", "blue"),
+    fill = c("#91bfdb", "#91bfdb", "#91bfdb", "#fc8d59", "#fc8d59", "#fc8d59"),
     shape = c(22,21,24,22,21,24),
-    alpha = 0.5,
+    alpha = 0.8,
     size = 3
   ) +
   xlab(pca_c[["labs1"]]) + ylab(pca_c[["labs2"]]) +
@@ -149,3 +159,25 @@ ggplot(data = coord_PCA_c_tb, aes(x=x, y=y)) +
 
 #####
 #PCA using ggplot normalised count
+
+pca_n <- coord_PCA_fn(pca_mtrx_n)
+
+coord_PCA_n_tb <- tibble(
+  samplea = colnames(pca_mtrx_n),
+  sampleb = c("infect&treat 1", "treat only 1", "none 1", "infect&treat 2", "treat only 2", "none 2"),
+  x = c(pca_n$x1, pca_n$x2, pca_n$x3, pca_n$x4, pca_n$x5, pca_n$x6),
+  y = c(pca_n$y1, pca_n$y2, pca_n$y3, pca_n$y4, pca_n$y5, pca_n$y6)
+)
+
+ggplot(data = coord_PCA_n_tb, aes(x=x, y=y)) +
+  geom_point(
+    fill = c("#91bfdb", "#91bfdb", "#91bfdb", "#fc8d59", "#fc8d59", "#fc8d59"),
+    shape = c(22,21,24,22,21,24),
+    alpha = 0.8,
+    size = 3
+  ) +
+  xlab(pca_n[["labs1"]]) + ylab(pca_n[["labs2"]]) +
+  theme_bw() +
+  geom_label_repel(aes(label = sampleb), color = "black", nudge_x = 0.1, nudge_y = 0.3) +
+  ggtitle("PCA, normalised, log(count+1)") +
+  coord_cartesian(xlim = c(-1,1), ylim = c(-1,1))

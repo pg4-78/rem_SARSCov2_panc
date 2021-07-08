@@ -1,5 +1,41 @@
-#Run the setup script
-source("Scripts/setup1.R")
+################################################################################
+#Script-file: histogram_count.R
+#Description: histogram of counts (all / sample column specific)
+################################################################################
+
+#Re-run the setup script (TRUE)
+#...alternatively, load a save(FALSE)
+if (FALSE) {
+  source("Scripts/setup2.R")
+  #or setup1 for no average log CPM filter
+} else {
+  
+  #Clear
+  #...variables
+  rm(list=ls())
+  #...console
+  cat("\014\n")
+  #...graphs
+  tryCatch(dev.off(), error = function(e) {NULL})
+  dev.new()
+  
+  load(file = "./Data/setup2_co_2p01.RData")
+  
+  #Weak filter only
+  #file = "./Data/setup2_wo.RData"
+  
+  #Weak filter and cutoff with opt_aveCPM_thresh
+  #file = "./Data/setup2_wc_2pn3.RData"
+  #file = "./Data/setup2_wc_2p01.RData"
+  #file = "./Data/setup2_wc_2p03.RData"
+  #file = "./Data/setup2_wc_2p05.RData"
+  #average CPM cutoff at 2 to the power of (...)
+  #-3 (below the lowest, no filter); 1, 3, 5
+  
+  #Cutoff with opt_aveCPM_thresh only; no weak filter
+  #file = "./Data/setup2_co_2p01.RData"
+  
+}
 
 ################################################################################
 

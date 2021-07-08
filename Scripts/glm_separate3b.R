@@ -1,3 +1,8 @@
+################################################################################
+#Script-file: glm_separate3b.R
+#Description: PART B of poisson vs negative binomial
+################################################################################
+
 #Clear
 #...variables
 rm(list=ls())
@@ -157,51 +162,58 @@ ggplot() +
   theme_bw()
 
 ################################################################################
-#______plots of aic
+#______Kernel density plots of AIC
+
 #Exclude errors only: poisson/ neg binom: with/out batch coefficient
+#Dashed excludes batch coefficient
 map(list(tb_eo_keep$po1_aic, tb_eo_keep$po2_aic, tb_eo_keep$nb1_aic, tb_eo_keep$nb2_aic), summary_v)
-xran <- 800
+xran <- 1000
 ggplot() +
-  geom_density(data = tb_eo_keep %>% filter(po1_aic<xran), aes(x = po1_aic), color = "red") +
-  geom_density(data = tb_eo_keep %>% filter(po2_aic<xran), aes(x = po2_aic), color = "red", linetype = "dotted") +
-  geom_density(data = tb_eo_keep %>% filter(nb1_aic<xran), aes(x = nb1_aic), color = "blue") +
-  geom_density(data = tb_eo_keep %>% filter(nb2_aic<xran), aes(x = nb2_aic), color = "blue", linetype = "dotted") +
+  geom_density(data = tb_eo_keep %>% filter(po1_aic<xran), aes(x = po1_aic), color = "orange", size = 0.8) +
+  geom_density(data = tb_eo_keep %>% filter(po2_aic<xran), aes(x = po2_aic), color = "blue", linetype = "dotted", size = 0.8) +
+  geom_density(data = tb_eo_keep %>% filter(nb1_aic<xran), aes(x = nb1_aic), color = "black", size = 0.8) +
+  geom_density(data = tb_eo_keep %>% filter(nb2_aic<xran), aes(x = nb2_aic), color = "red", linetype = "dotted", size = 0.8) +
   xlab("AIC") +
   ylab("kernel probability density est.") +
   theme_bw() +
-  ggtitle("AIC density: exclude error regr. only") +
-  coord_cartesian(xlim = c(0,xran))
+  #ggtitle("AIC density: exclude error regr. only") +
+  coord_cartesian(xlim = c(0, xran))
+
+#####
 
 #Exclude errors and warnings: poisson/ neg binom: with/out batch coefficient
 map(list(tb_ew_keep$po1_aic, tb_ew_keep$po2_aic, tb_ew_keep$nb1_aic, tb_ew_keep$nb2_aic), summary_v)
-xran <- 800
+xran <- 1000
 ggplot() +
-  geom_density(data = tb_ew_keep %>% filter(po1_aic<xran), aes(x = po1_aic), color = "red") +
-  geom_density(data = tb_ew_keep %>% filter(po2_aic<xran), aes(x = po2_aic), color = "red", linetype = "dotted") +
-  geom_density(data = tb_ew_keep %>% filter(nb1_aic<xran), aes(x = nb1_aic), color = "blue") +
-  geom_density(data = tb_ew_keep %>% filter(nb2_aic<xran), aes(x = nb2_aic), color = "blue", linetype = "dotted") +
+  geom_density(data = tb_ew_keep %>% filter(po1_aic<xran), aes(x = po1_aic), color = "orange", size = 0.8) +
+  geom_density(data = tb_ew_keep %>% filter(po2_aic<xran), aes(x = po2_aic), color = "blue", linetype = "dashed", size = 0.8) +
+  geom_density(data = tb_ew_keep %>% filter(nb1_aic<xran), aes(x = nb1_aic), color = "black", size = 0.8) +
+  geom_density(data = tb_ew_keep %>% filter(nb2_aic<xran), aes(x = nb2_aic), color = "red", linetype = "dashed", size = 0.8) +
   xlab("AIC") +
-  ylab("kernel probability density est.") +
+  ylab("Kernel Probability Density Est.") +
   theme_bw() +
-  ggtitle("AIC density: exclude error & warning regr.") +
+  #ggtitle("AIC density: exclude error & warning regr.") +
   coord_cartesian(xlim = c(0,xran))
 
-xyran <- 62837.80810
-ggplot(data = tb_eo_keep %>% filter(po1_aic < 62837.80810 & nb1_aic < 62837.80810)) +
-  geom_point(aes(x=po1_aic, y=nb1_aic), alpha = 0.1) +
-  geom_abline(slope = 1, color = "green4") +
-  coord_cartesian(xlim = c(0,xyran), ylim = c(0,xyran))
 
-ggplot(data = tb_eo_keep %>% filter(po1_aic < 62837.80810 & nb1_aic < 62837.80810)) +
-  geom_point(aes(x=po1_aic, y=nb1_aic), alpha = 0.1) +
-  geom_abline(slope = 1, color = "green4") +
-  coord_cartesian(xlim = NULL, ylim = NULL)
+################################################################################
+#______Two way scatterplot of AIC
 
-ggplot(data = tb_ew_keep %>% filter(po1_aic < 62837.80810 & nb1_aic < 62837.80810)) +
-  geom_point(aes(x=po1_aic, y=nb1_aic), alpha = 0.1) +
-  geom_abline(slope = 1, color = "green4") +
-  coord_cartesian(xlim = c(0,xyran), ylim = c(0,xyran))
-####################
+#negative binomial vs poisson
+#Errors and warnings excluded
+#Batch covariate used
+ggplot(data = tb_ew_keep %>% 
+    dplyr::mutate(ln_po1_aic = log10(po1_aic)) %>% 
+    dplyr::mutate(ln_nb1_aic = log10(nb1_aic)) 
+  ) +
+  geom_point(aes(x=ln_po1_aic, y=ln_nb1_aic), size=0.5, alpha=0.4, pch = 16) +
+  geom_abline(slope = 1, color = "red") +
+  xlab("poisson log10(AIC)") +
+  ylab("negative binomial log10(AIC)") +
+  coord_cartesian(xlim = c(1,5), ylim = c(1,5)) +
+  theme_bw()
+
+################################################################################
 #______plots of p values for infect coefficients 
 #...(pois vs neg-binom) 
 #...(batch coef vs none)
@@ -316,7 +328,7 @@ ggplot(data = tb_eo_keep %>% filter(nb1_p_b < xran)) +
   ggtitle("p-value batch: exclude error regr.") +
   coord_cartesian(ylim = NULL)
 
-####################
+################################################################################
 #______plots of treat coefficients 
 
 #...(pois vs neg-binom) 
@@ -339,7 +351,6 @@ ggplot(data = tb_eo_keep) +
 
 ####################
 #______plots of infect coefficients 
-
 #...(pois vs neg-binom) 
 
 ggplot(data = tb_eo_keep) +
@@ -357,6 +368,8 @@ ggplot(data = tb_eo_keep) +
   theme_bw() +
   ggtitle("coeff infect: exclude error regr.")
 
+################################################################################
+#Cleanup
 xran <- 0
 yran <- 0
 xyran <- 0

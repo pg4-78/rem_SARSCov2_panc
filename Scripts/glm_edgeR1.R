@@ -1,3 +1,7 @@
+################################################################################
+#Script-file: glm_edgeR1.R
+#Description: main differential expression analysis SARS-CoV2/ remdesivir
+################################################################################
 #Re-run the setup script (TRUE)
 #...alternatively, load a save(FALSE)
 if (FALSE) {
@@ -14,18 +18,22 @@ if (FALSE) {
   tryCatch(dev.off(), error = function(e) {NULL})
   dev.new()
   
-  load(file = "./Data/setup2_cut_2p01.RData")
+  load(file = "./Data/setup2_co_2p01.RData")
   
-  #No extra filter
-  #file = "./Data/setup2_stock.RData"
+  #Weak filter only
+  #file = "./Data/setup2_wo.RData"
   
-  #Extra filter using opt_aveCPM_thresh
-  #file = "./Data/setup2_cut_2pn3.RData"
-  #file = "./Data/setup2_cut_2p01.RData"
-  #file = "./Data/setup2_cut_2p03.RData"
-  #file = "./Data/setup2_cut_2p05.RData"
+  #Weak filter and cutoff with opt_aveCPM_thresh
+  #file = "./Data/setup2_wc_2pn3.RData"
+  #file = "./Data/setup2_wc_2p01.RData"
+  #file = "./Data/setup2_wc_2p03.RData"
+  #file = "./Data/setup2_wc_2p05.RData"
   #average CPM cutoff at 2 to the power of (...)
-  #-3 (below the lowest, no filter), 1, 3, 5
+  #-3 (below the lowest, no filter); 1, 3, 5
+  
+  #Cutoff with opt_aveCPM_thresh only; no weak filter
+  #file = "./Data/setup2_co_2p01.RData"
+  
 }
 
 #Setup includes filtering and normalisation
@@ -49,7 +57,7 @@ opt_batch <- TRUE
 #...(TRUE: yes; FALSE: no)
 opt_ql <- FALSE
 
-#Fold change threshold for being in top ranked genes
+#Fold change threshold (eg. for labels)
 opt_fc_thresh <- 3
 
 #Go to setup2 to change the average log CPM threshold
@@ -99,9 +107,9 @@ if (opt_batch==TRUE) {
 #______Dispersion
 #(edgeR GLM does not work until dispersions are estimated)
 y <- estimateDisp(y, design = design_m)
-plotBCV(y, xlim = c(-2, 16))
-axis(1, at = seq(-2, 16, by = 1), labels = NA)
-axis(1, at = seq(0, 15, by = 5))
+plotBCV(y, xlim = c(1, 16))
+axis(1, at = seq(1, 16, by = 1))
+axis(1, at = seq(2, 16, by = 2))
 
 ####################
 #______Fit negative binomial glm
@@ -133,7 +141,7 @@ temp_i[["table"]] <- temp_i[["table"]][temp_i[["table"]][["logFC"]]>=log2(opt_fc
 dim(temp_i[["table"]])
 
 gene_top_i_tb <- as_tibble(gene_top_i[["table"]]) %>% 
-  dplyr::filter(abs(logFC)>=log2(opt_fc_thresh)) %>% 
+  #dplyr::filter(abs(logFC)>=log2(opt_fc_thresh)) %>% 
   dplyr::arrange(PValue)
 head(gene_top_i_tb, n = 10)
 
@@ -178,8 +186,8 @@ temp_t[["table"]] <- temp_t[["table"]][temp_t[["table"]][["logFC"]]>=log2(opt_fc
 dim(temp_t[["table"]])
 
 gene_top_t_tb <- as_tibble(gene_top_t[["table"]]) %>% 
-  dplyr::filter(abs(logFC)>=log2(opt_fc_thresh)) %>% 
-  dplyr::arrange(PValue) %>% 
+  #dplyr::filter(abs(logFC)>=log2(opt_fc_thresh)) %>% 
+  dplyr::arrange(PValue)
 head(gene_top_t_tb, n = 10)
 
 #over-represented gene GROUPS for TREAT
@@ -222,13 +230,13 @@ volc_i_tb <- as_tibble(gene_top_i[["table"]]) %>%
 
 ggplot(data = volc_i_tb, aes(x=logFC, y=neg_log10_p)) +
   geom_point(size = 1.5, alpha = 0.6, shape = 16) +
-  geom_label_repel(data = volc_i_tb %>% filter(FDR<0.05 & (abs(logFC)>=log2(opt_fc_thresh))), #
+  geom_label_repel(data = volc_i_tb %>% filter(FDR<0.05), # & (abs(logFC)>=log2(opt_fc_thresh))
     aes(label = gene_name), color = "red", alpha = 0.8, nudge_y = 1) +
   scale_x_continuous(breaks = seq(-10, 10, by = 5), minor_breaks = seq(-12, 12, by = 1)) +
   scale_y_continuous(breaks = seq(0, 10, by = 1), minor_breaks = NULL) +
   coord_cartesian(xlim = c(-12,12), ylim = c(0,10)) +
   theme_bw() +
-  xlab("log2(fold change) infection") +
+  xlab("log2(fold-change) for infection") +
   ylab("-log10(p-value)") #+
   #ggtitle("volcano infect")
 
@@ -240,13 +248,13 @@ volc_t_tb <- as_tibble(gene_top_t[["table"]]) %>%
 
 ggplot(data = volc_t_tb, aes(x=logFC, y=neg_log10_p)) +
   geom_point(size = 1.5, alpha = 0.6, shape = 16) +
-  geom_label_repel(data = volc_t_tb %>% filter(FDR<0.06& (abs(logFC)>=log2(opt_fc_thresh))), # 
+  geom_label_repel(data = volc_t_tb %>% filter(FDR<0.05), # & (abs(logFC)>=log2(opt_fc_thresh))
     aes(label = gene_name), color = "black", alpha = 0.8, nudge_y = 1) +
   scale_x_continuous(breaks = seq(-10, 10, by = 5), minor_breaks = seq(-12, 12, by = 1)) +
   scale_y_continuous(breaks = seq(0, 10, by = 1), minor_breaks = NULL) +
   coord_cartesian(xlim = c(-12,12), ylim = c(0,10)) +
   theme_bw() + 
-  xlab("log2(fold change) treatment") +
+  xlab("log2(fold-change) for treatment") +
   ylab("-log10(p-value)") #+
   #ggtitle("volcano treat") 
 
@@ -258,8 +266,8 @@ ggplot(data = volc_t_tb, aes(x=logFC, y=neg_log10_p)) +
 ggplot(data = volc_i_tb, aes(x=PValue)) +
   geom_histogram(binwidth=0.025, boundary=0, fill="black", colour="white", size=0.2) +
   geom_density() +
-  xlab("p-values of infect regression coefficients") +
-  ylab("frequency") +
+  xlab("p-values of Infection Regression Coefficients") +
+  ylab("Frequency") +
   coord_cartesian(x=c(0,1), y=c(0,500)) +
   scale_x_continuous(breaks = seq(0,1,0.2), minor_breaks = seq(0,1,0.025)) +
   theme_bw() #+ 
@@ -269,9 +277,22 @@ ggplot(data = volc_i_tb, aes(x=PValue)) +
 #______TREAT: 
 ggplot(data = volc_t_tb, aes(x=PValue)) +
   geom_histogram(binwidth=0.025, boundary=0, fill="black", colour="white", size=0.2) +
-  xlab("p-values of treat regression coefficients") +
-  ylab("frequency") +
+  xlab("p-values of Treatment Regression Coefficients") +
+  ylab("Frequency") +
   coord_cartesian(x=c(0,1), y=c(0,500)) +
   scale_x_continuous(breaks = seq(0,1,0.2), minor_breaks = seq(0,1,0.025)) +
   theme_bw() #+
   #ggtitle("p-value histogram treat")
+
+goana_bp <- goana_top_iu %>% dplyr::filter(Ont=="BP")
+goana_cc <- goana_top_iu %>% dplyr::filter(Ont=="CC")
+goana_mf <- goana_top_iu %>% dplyr::filter(Ont=="MF")
+
+if (FALSE) {
+  readr::write_csv(gene_top_t_tb, "./Data/1bgene_top_t_tb.csv")
+  readr::write_csv(gene_top_i_tb, "./Data/1bgene_top_i_tb.csv")
+  
+  readr::write_csv(goana_bp, "./Data/1bgoana_bp.csv")
+  readr::write_csv(goana_cc, "./Data/1bgoana_cc.csv")
+  readr::write_csv(goana_mf, "./Data/1bgoana_mf.csv")
+}

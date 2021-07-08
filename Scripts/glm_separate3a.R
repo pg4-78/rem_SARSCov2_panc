@@ -1,21 +1,47 @@
-#Clear
-#...variables
-rm(list=ls())
-#...console
-cat("\014\n")
-#...graphs
-tryCatch(dev.off(), error = function(e) {NULL})
-dev.new()
+################################################################################
+#Script-file: glm_separate3a.R
+#Description: PART A of poisson vs negative binomial
+################################################################################
+
+#Re-run the setup script (TRUE)
+#...alternatively, load a save(FALSE)
+if (FALSE) {
+  source("Scripts/setup2.R")
+  #or setup1 for no average log CPM filter
+} else {
+  
+  #Clear
+  #...variables
+  rm(list=ls())
+  #...console
+  cat("\014\n")
+  #...graphs
+  tryCatch(dev.off(), error = function(e) {NULL})
+  dev.new()
+  
+  load(file = "./Data/setup2_co_2p01.RData")
+  
+  #Weak filter only
+  #file = "./Data/setup2_wo.RData"
+  
+  #Weak filter and cutoff with opt_aveCPM_thresh
+  #file = "./Data/setup2_wc_2pn3.RData"
+  #file = "./Data/setup2_wc_2p01.RData"
+  #file = "./Data/setup2_wc_2p03.RData"
+  #file = "./Data/setup2_wc_2p05.RData"
+  #average CPM cutoff at 2 to the power of (...)
+  #-3 (below the lowest, no filter); 1, 3, 5
+  
+  #Cutoff with opt_aveCPM_thresh only; no weak filter
+  #file = "./Data/setup2_co_2p01.RData"
+  
+}
 
 library(data.table)
 library(tidyverse)
 library(edgeR)
 library(MASS)
 
-################################################################################
-#Run save of setup2 
-#Filter of log2 CPM -3 does not remove any genes
-load(file = "./Data/setup2_cut_2pn3.RData")
 
 ################################################################################
 
@@ -46,7 +72,7 @@ design2
 #Skip errors only (FALSE)
 #Alternatively, skip errors and warnings (TRUE)
 
-if (FALSE) {
+if (TRUE) {
   catch_e <- function(x) {
     tryCatch(x,
       error = function(e) {NA},
@@ -277,18 +303,20 @@ rm(
   i
 )
 
+#####
 #The previous calculations can take several minutes
 #The global environment variables are saved
 #Refresh the save?
 
-#Filter out errors regressions only
+#Filter out errors regressions only; catch_e: FALSE option
 if (0) {
   save.image(file = "./Data/glm_separate3a_eo.RData")
 }
 
-#Filter out both error and warning regressions
+#Filter out both error and warning regressions; catch_e: TRUE option
 if (0) {
   save.image(file = "./Data/glm_separate3a_ew.RData")
 }
 
+#####
 #The graphing steps are in "./Scripts/glm_separate3b"
